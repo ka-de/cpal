@@ -1,7 +1,10 @@
 //! Helper code for registering audio object property listeners.
 use super::coreaudio::sys::{
-    AudioObjectAddPropertyListener, AudioObjectID, AudioObjectPropertyAddress,
-    AudioObjectRemovePropertyListener, OSStatus,
+    AudioObjectAddPropertyListener,
+    AudioObjectID,
+    AudioObjectPropertyAddress,
+    AudioObjectRemovePropertyListener,
+    OSStatus,
 };
 
 use crate::BuildStreamError;
@@ -24,17 +27,19 @@ impl AudioObjectPropertyListener {
     pub fn new<F: FnMut() + 'static>(
         audio_object_id: AudioObjectID,
         property_address: AudioObjectPropertyAddress,
-        callback: F,
+        callback: F
     ) -> Result<Self, BuildStreamError> {
         let callback = Box::new(PropertyListenerCallbackWrapper(Box::new(callback)));
         unsafe {
-            coreaudio::Error::from_os_status(AudioObjectAddPropertyListener(
-                audio_object_id,
-                &property_address as *const _,
-                Some(property_listener_handler_shim),
-                &*callback as *const _ as *mut _,
-            ))?;
-        };
+            coreaudio::Error::from_os_status(
+                AudioObjectAddPropertyListener(
+                    audio_object_id,
+                    &property_address as *const _,
+                    Some(property_listener_handler_shim),
+                    &*callback as *const _ as *mut _
+                )
+            )?;
+        }
         Ok(Self {
             callback,
             audio_object_id,
@@ -52,12 +57,14 @@ impl AudioObjectPropertyListener {
 
     fn remove_inner(&mut self) -> Result<(), BuildStreamError> {
         unsafe {
-            coreaudio::Error::from_os_status(AudioObjectRemovePropertyListener(
-                self.audio_object_id,
-                &self.property_address as *const _,
-                Some(property_listener_handler_shim),
-                &*self.callback as *const _ as *mut _,
-            ))?;
+            coreaudio::Error::from_os_status(
+                AudioObjectRemovePropertyListener(
+                    self.audio_object_id,
+                    &self.property_address as *const _,
+                    Some(property_listener_handler_shim),
+                    &*self.callback as *const _ as *mut _
+                )
+            )?;
         }
         self.removed = true;
         Ok(())
@@ -77,9 +84,9 @@ unsafe extern "C" fn property_listener_handler_shim(
     _: AudioObjectID,
     _: u32,
     _: *const AudioObjectPropertyAddress,
-    callback: *mut ::std::os::raw::c_void,
+    callback: *mut ::std::os::raw::c_void
 ) -> OSStatus {
     let wrapper = callback as *mut PropertyListenerCallbackWrapper;
-    (*wrapper).0();
+    ((*wrapper).0)();
     0
 }

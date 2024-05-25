@@ -1,7 +1,7 @@
 extern crate anyhow;
 extern crate cpal;
 
-use cpal::traits::{DeviceTrait, HostTrait};
+use cpal::traits::{ DeviceTrait, HostTrait };
 
 fn main() -> Result<(), anyhow::Error> {
     println!("Supported hosts:\n  {:?}", cpal::ALL_HOSTS);
@@ -36,12 +36,7 @@ fn main() -> Result<(), anyhow::Error> {
             if !input_configs.is_empty() {
                 println!("    All supported input stream configs:");
                 for (config_index, config) in input_configs.into_iter().enumerate() {
-                    println!(
-                        "      {}.{}. {:?}",
-                        device_index + 1,
-                        config_index + 1,
-                        config
-                    );
+                    println!("      {}.{}. {:?}", device_index + 1, config_index + 1, config);
                 }
             }
 
@@ -59,12 +54,7 @@ fn main() -> Result<(), anyhow::Error> {
             if !output_configs.is_empty() {
                 println!("    All supported output stream configs:");
                 for (config_index, config) in output_configs.into_iter().enumerate() {
-                    println!(
-                        "      {}.{}. {:?}",
-                        device_index + 1,
-                        config_index + 1,
-                        config
-                    );
+                    println!("      {}.{}. {:?}", device_index + 1, config_index + 1, config);
                 }
             }
         }

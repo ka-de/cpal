@@ -33,7 +33,12 @@ pub use self::platform_impl::*;
 /// SupportedOutputConfigs and all their necessary trait implementations.
 ///
 macro_rules! impl_platform_host {
-    ($($(#[cfg($feat: meta)])? $HostVariant:ident $host_mod:ident $host_name:literal),*) => {
+    (
+        $(
+            $(#[cfg($feat:meta)])?
+            $HostVariant:ident $host_mod:ident $host_name:literal
+        ),*
+    ) => {
         /// All hosts supported by CPAL on this platform.
         pub const ALL_HOSTS: &'static [HostId] = &[
             $(
@@ -571,21 +576,24 @@ macro_rules! impl_platform_host {
 }
 
 // TODO: Add pulseaudio and jack here eventually.
-#[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd"
-))]
+#[cfg(
+    any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd")
+)]
 mod platform_impl {
     pub use crate::host::alsa::{
-        Device as AlsaDevice, Devices as AlsaDevices, Host as AlsaHost, Stream as AlsaStream,
+        Device as AlsaDevice,
+        Devices as AlsaDevices,
+        Host as AlsaHost,
+        Stream as AlsaStream,
         SupportedInputConfigs as AlsaSupportedInputConfigs,
         SupportedOutputConfigs as AlsaSupportedOutputConfigs,
     };
     #[cfg(feature = "jack")]
     pub use crate::host::jack::{
-        Device as JackDevice, Devices as JackDevices, Host as JackHost, Stream as JackStream,
+        Device as JackDevice,
+        Devices as JackDevices,
+        Host as JackHost,
+        Stream as JackStream,
         SupportedInputConfigs as JackSupportedInputConfigs,
         SupportedOutputConfigs as JackSupportedOutputConfigs,
     };
@@ -594,17 +602,18 @@ mod platform_impl {
 
     /// The default host for the current compilation target platform.
     pub fn default_host() -> Host {
-        AlsaHost::new()
-            .expect("the default host should always be available")
-            .into()
+        AlsaHost::new().expect("the default host should always be available").into()
     }
 }
 
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 mod platform_impl {
     pub use crate::host::coreaudio::{
-        Device as CoreAudioDevice, Devices as CoreAudioDevices, Host as CoreAudioHost,
-        Stream as CoreAudioStream, SupportedInputConfigs as CoreAudioSupportedInputConfigs,
+        Device as CoreAudioDevice,
+        Devices as CoreAudioDevices,
+        Host as CoreAudioHost,
+        Stream as CoreAudioStream,
+        SupportedInputConfigs as CoreAudioSupportedInputConfigs,
         SupportedOutputConfigs as CoreAudioSupportedOutputConfigs,
     };
 
@@ -612,17 +621,18 @@ mod platform_impl {
 
     /// The default host for the current compilation target platform.
     pub fn default_host() -> Host {
-        CoreAudioHost::new()
-            .expect("the default host should always be available")
-            .into()
+        CoreAudioHost::new().expect("the default host should always be available").into()
     }
 }
 
 #[cfg(target_os = "emscripten")]
 mod platform_impl {
     pub use crate::host::emscripten::{
-        Device as EmscriptenDevice, Devices as EmscriptenDevices, Host as EmscriptenHost,
-        Stream as EmscriptenStream, SupportedInputConfigs as EmscriptenSupportedInputConfigs,
+        Device as EmscriptenDevice,
+        Devices as EmscriptenDevices,
+        Host as EmscriptenHost,
+        Stream as EmscriptenStream,
+        SupportedInputConfigs as EmscriptenSupportedInputConfigs,
         SupportedOutputConfigs as EmscriptenSupportedOutputConfigs,
     };
 
@@ -630,17 +640,18 @@ mod platform_impl {
 
     /// The default host for the current compilation target platform.
     pub fn default_host() -> Host {
-        EmscriptenHost::new()
-            .expect("the default host should always be available")
-            .into()
+        EmscriptenHost::new().expect("the default host should always be available").into()
     }
 }
 
 #[cfg(all(target_arch = "wasm32", feature = "wasm-bindgen"))]
 mod platform_impl {
     pub use crate::host::webaudio::{
-        Device as WebAudioDevice, Devices as WebAudioDevices, Host as WebAudioHost,
-        Stream as WebAudioStream, SupportedInputConfigs as WebAudioSupportedInputConfigs,
+        Device as WebAudioDevice,
+        Devices as WebAudioDevices,
+        Host as WebAudioHost,
+        Stream as WebAudioStream,
+        SupportedInputConfigs as WebAudioSupportedInputConfigs,
         SupportedOutputConfigs as WebAudioSupportedOutputConfigs,
     };
 
@@ -648,9 +659,7 @@ mod platform_impl {
 
     /// The default host for the current compilation target platform.
     pub fn default_host() -> Host {
-        WebAudioHost::new()
-            .expect("the default host should always be available")
-            .into()
+        WebAudioHost::new().expect("the default host should always be available").into()
     }
 }
 
@@ -658,13 +667,19 @@ mod platform_impl {
 mod platform_impl {
     #[cfg(feature = "asio")]
     pub use crate::host::asio::{
-        Device as AsioDevice, Devices as AsioDevices, Host as AsioHost, Stream as AsioStream,
+        Device as AsioDevice,
+        Devices as AsioDevices,
+        Host as AsioHost,
+        Stream as AsioStream,
         SupportedInputConfigs as AsioSupportedInputConfigs,
         SupportedOutputConfigs as AsioSupportedOutputConfigs,
     };
     pub use crate::host::wasapi::{
-        Device as WasapiDevice, Devices as WasapiDevices, Host as WasapiHost,
-        Stream as WasapiStream, SupportedInputConfigs as WasapiSupportedInputConfigs,
+        Device as WasapiDevice,
+        Devices as WasapiDevices,
+        Host as WasapiHost,
+        Stream as WasapiStream,
+        SupportedInputConfigs as WasapiSupportedInputConfigs,
         SupportedOutputConfigs as WasapiSupportedOutputConfigs,
     };
 
@@ -672,16 +687,17 @@ mod platform_impl {
 
     /// The default host for the current compilation target platform.
     pub fn default_host() -> Host {
-        WasapiHost::new()
-            .expect("the default host should always be available")
-            .into()
+        WasapiHost::new().expect("the default host should always be available").into()
     }
 }
 
 #[cfg(target_os = "android")]
 mod platform_impl {
     pub use crate::host::oboe::{
-        Device as OboeDevice, Devices as OboeDevices, Host as OboeHost, Stream as OboeStream,
+        Device as OboeDevice,
+        Devices as OboeDevices,
+        Host as OboeHost,
+        Stream as OboeStream,
         SupportedInputConfigs as OboeSupportedInputConfigs,
         SupportedOutputConfigs as OboeSupportedOutputConfigs,
     };
@@ -690,27 +706,31 @@ mod platform_impl {
 
     /// The default host for the current compilation target platform.
     pub fn default_host() -> Host {
-        OboeHost::new()
-            .expect("the default host should always be available")
-            .into()
+        OboeHost::new().expect("the default host should always be available").into()
     }
 }
 
-#[cfg(not(any(
-    windows,
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd",
-    target_os = "macos",
-    target_os = "ios",
-    target_os = "emscripten",
-    target_os = "android",
-    all(target_arch = "wasm32", feature = "wasm-bindgen"),
-)))]
+#[cfg(
+    not(
+        any(
+            windows,
+            target_os = "linux",
+            target_os = "dragonfly",
+            target_os = "freebsd",
+            target_os = "netbsd",
+            target_os = "macos",
+            target_os = "ios",
+            target_os = "emscripten",
+            target_os = "android",
+            all(target_arch = "wasm32", feature = "wasm-bindgen")
+        )
+    )
+)]
 mod platform_impl {
     pub use crate::host::null::{
-        Device as NullDevice, Devices as NullDevices, Host as NullHost,
+        Device as NullDevice,
+        Devices as NullDevices,
+        Host as NullHost,
         SupportedInputConfigs as NullSupportedInputConfigs,
         SupportedOutputConfigs as NullSupportedOutputConfigs,
     };
@@ -719,9 +739,7 @@ mod platform_impl {
 
     /// The default host for the current compilation target platform.
     pub fn default_host() -> Host {
-        NullHost::new()
-            .expect("the default host should always be available")
-            .into()
+        NullHost::new().expect("the default host should always be available").into()
     }
 }
 

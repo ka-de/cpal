@@ -1,7 +1,7 @@
 extern crate jack;
 
 use crate::traits::HostTrait;
-use crate::{DevicesError, SampleFormat, SupportedStreamConfigRange};
+use crate::{ DevicesError, SampleFormat, SupportedStreamConfigRange };
 
 mod device;
 pub use self::device::Device;
@@ -66,7 +66,7 @@ impl Host {
         let in_device_res = Device::default_input_device(
             &self.name,
             self.connect_ports_automatically,
-            self.start_server_automatically,
+            self.start_server_automatically
         );
 
         match in_device_res {
@@ -79,7 +79,7 @@ impl Host {
         let out_device_res = Device::default_output_device(
             &self.name,
             self.connect_ports_automatically,
-            self.start_server_automatically,
+            self.start_server_automatically
         );
         match out_device_res {
             Ok(device) => self.devices_created.push(device),
@@ -133,10 +133,7 @@ impl HostTrait for Host {
 
 fn get_client_options(start_server_automatically: bool) -> jack::ClientOptions {
     let mut client_options = jack::ClientOptions::empty();
-    client_options.set(
-        jack::ClientOptions::NO_START_SERVER,
-        !start_server_automatically,
-    );
+    client_options.set(jack::ClientOptions::NO_START_SERVER, !start_server_automatically);
     client_options
 }
 
@@ -146,29 +143,35 @@ fn get_client(name: &str, client_options: jack::ClientOptions) -> Result<jack::C
         Ok((client, status)) => {
             // The ClientStatus can tell us many things
             if status.intersects(jack::ClientStatus::SERVER_ERROR) {
-                return Err(String::from(
-                    "There was an error communicating with the JACK server!",
-                ));
+                return Err(String::from("There was an error communicating with the JACK server!"));
             } else if status.intersects(jack::ClientStatus::SERVER_FAILED) {
                 return Err(String::from("Could not connect to the JACK server!"));
             } else if status.intersects(jack::ClientStatus::VERSION_ERROR) {
-                return Err(String::from(
-                    "Error connecting to JACK server: Client's protocol version does not match!",
-                ));
+                return Err(
+                    String::from(
+                        "Error connecting to JACK server: Client's protocol version does not match!"
+                    )
+                );
             } else if status.intersects(jack::ClientStatus::INIT_FAILURE) {
-                return Err(String::from(
-                    "Error connecting to JACK server: Unable to initialize client!",
-                ));
+                return Err(
+                    String::from("Error connecting to JACK server: Unable to initialize client!")
+                );
             } else if status.intersects(jack::ClientStatus::SHM_FAILURE) {
-                return Err(String::from(
-                    "Error connecting to JACK server: Unable to access shared memory!",
-                ));
+                return Err(
+                    String::from("Error connecting to JACK server: Unable to access shared memory!")
+                );
             } else if status.intersects(jack::ClientStatus::NO_SUCH_CLIENT) {
-                return Err(String::from(
-                    "Error connecting to JACK server: Requested client does not exist!",
-                ));
+                return Err(
+                    String::from(
+                        "Error connecting to JACK server: Requested client does not exist!"
+                    )
+                );
             } else if status.intersects(jack::ClientStatus::INVALID_OPTION) {
-                return Err(String::from("Error connecting to JACK server: The operation contained an invalid or unsupported option!"));
+                return Err(
+                    String::from(
+                        "Error connecting to JACK server: The operation contained an invalid or unsupported option!"
+                    )
+                );
             }
 
             return Ok(client);

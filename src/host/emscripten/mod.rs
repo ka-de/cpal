@@ -2,15 +2,29 @@ use js_sys::Float32Array;
 use std::time::Duration;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
-use wasm_bindgen_futures::{spawn_local, JsFuture};
+use wasm_bindgen_futures::{ spawn_local, JsFuture };
 use web_sys::AudioContext;
 
-use crate::traits::{DeviceTrait, HostTrait, StreamTrait};
+use crate::traits::{ DeviceTrait, HostTrait, StreamTrait };
 use crate::{
-    BufferSize, BuildStreamError, Data, DefaultStreamConfigError, DeviceNameError, DevicesError,
-    InputCallbackInfo, OutputCallbackInfo, PauseStreamError, PlayStreamError, SampleFormat,
-    SampleRate, StreamConfig, StreamError, SupportedBufferSize, SupportedStreamConfig,
-    SupportedStreamConfigRange, SupportedStreamConfigsError,
+    BufferSize,
+    BuildStreamError,
+    Data,
+    DefaultStreamConfigError,
+    DeviceNameError,
+    DevicesError,
+    InputCallbackInfo,
+    OutputCallbackInfo,
+    PauseStreamError,
+    PlayStreamError,
+    SampleFormat,
+    SampleRate,
+    StreamConfig,
+    StreamError,
+    SupportedBufferSize,
+    SupportedStreamConfig,
+    SupportedStreamConfigRange,
+    SupportedStreamConfigsError,
 };
 
 // The emscripten backend currently works by instantiating an `AudioContext` object per `Stream`.
@@ -71,14 +85,14 @@ impl Device {
 
     #[inline]
     fn supported_input_configs(
-        &self,
+        &self
     ) -> Result<SupportedInputConfigs, SupportedStreamConfigsError> {
         unimplemented!();
     }
 
     #[inline]
     fn supported_output_configs(
-        &self,
+        &self
     ) -> Result<SupportedOutputConfigs, SupportedStreamConfigsError> {
         let buffer_size = SupportedBufferSize::Range {
             min: MIN_BUFFER_SIZE,
@@ -145,13 +159,13 @@ impl DeviceTrait for Device {
     }
 
     fn supported_input_configs(
-        &self,
+        &self
     ) -> Result<Self::SupportedInputConfigs, SupportedStreamConfigsError> {
         Device::supported_input_configs(self)
     }
 
     fn supported_output_configs(
-        &self,
+        &self
     ) -> Result<Self::SupportedOutputConfigs, SupportedStreamConfigsError> {
         Device::supported_output_configs(self)
     }
@@ -170,11 +184,12 @@ impl DeviceTrait for Device {
         _sample_format: SampleFormat,
         _data_callback: D,
         _error_callback: E,
-        _timeout: Option<Duration>,
-    ) -> Result<Self::Stream, BuildStreamError>
-    where
-        D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        _timeout: Option<Duration>
+    )
+        -> Result<Self::Stream, BuildStreamError>
+        where
+            D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
         unimplemented!()
     }
@@ -185,11 +200,12 @@ impl DeviceTrait for Device {
         sample_format: SampleFormat,
         data_callback: D,
         _error_callback: E,
-        _timeout: Option<Duration>,
-    ) -> Result<Self::Stream, BuildStreamError>
-    where
-        D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        _timeout: Option<Duration>
+    )
+        -> Result<Self::Stream, BuildStreamError>
+        where
+            D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
         if !valid_config(config, sample_format) {
             return Err(BuildStreamError::StreamConfigNotSupported);
@@ -222,7 +238,7 @@ impl DeviceTrait for Device {
             data_callback,
             config,
             sample_format,
-            buffer_size_frames as u32,
+            buffer_size_frames as u32
         );
 
         Ok(stream)
@@ -231,11 +247,7 @@ impl DeviceTrait for Device {
 
 impl StreamTrait for Stream {
     fn play(&self) -> Result<(), PlayStreamError> {
-        let future = JsFuture::from(
-            self.audio_ctxt
-                .resume()
-                .expect("Could not resume the stream"),
-        );
+        let future = JsFuture::from(self.audio_ctxt.resume().expect("Could not resume the stream"));
         spawn_local(async {
             match future.await {
                 Ok(value) => assert!(value.is_undefined()),
@@ -247,9 +259,7 @@ impl StreamTrait for Stream {
 
     fn pause(&self) -> Result<(), PauseStreamError> {
         let future = JsFuture::from(
-            self.audio_ctxt
-                .suspend()
-                .expect("Could not suspend the stream"),
+            self.audio_ctxt.suspend().expect("Could not suspend the stream")
         );
         spawn_local(async {
             match future.await {
@@ -262,14 +272,13 @@ impl StreamTrait for Stream {
 }
 
 fn audio_callback_fn<D>(
-    mut data_callback: D,
+    mut data_callback: D
 ) -> impl FnOnce(Stream, StreamConfig, SampleFormat, u32)
-where
-    D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
+    where D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static
 {
     |stream, config, sample_format, buffer_size_frames| {
         let sample_rate = config.sample_rate.0;
-        let buffer_size_samples = buffer_size_frames * config.channels as u32;
+        let buffer_size_samples = buffer_size_frames * (config.channels as u32);
         let audio_ctxt = &stream.audio_ctxt;
 
         // TODO: We should be re-using a buffer.
@@ -296,24 +305,21 @@ where
 
         let typed_array: Float32Array = temporary_buffer.as_slice().into();
 
-        debug_assert_eq!(temporary_buffer.len() % config.channels as usize, 0);
+        debug_assert_eq!(temporary_buffer.len() % (config.channels as usize), 0);
 
         let src_buffer = Float32Array::new(typed_array.buffer().as_ref());
         let context = audio_ctxt;
         let buffer = context
-            .create_buffer(
-                config.channels as u32,
-                buffer_size_frames as u32,
-                sample_rate as f32,
-            )
+            .create_buffer(config.channels as u32, buffer_size_frames as u32, sample_rate as f32)
             .expect("Buffer could not be created");
         for channel in 0..config.channels {
             let mut buffer_content = buffer
                 .get_channel_data(channel as u32)
                 .expect("Should be impossible");
             for (i, buffer_content_item) in buffer_content.iter_mut().enumerate() {
-                *buffer_content_item =
-                    src_buffer.get_index(i as u32 * config.channels as u32 + channel as u32);
+                *buffer_content_item = src_buffer.get_index(
+                    (i as u32) * (config.channels as u32) + (channel as u32)
+                );
             }
         }
 
@@ -331,12 +337,12 @@ where
         // data that is in each buffer ; this is obviously bad, and also the schedule is too tight
         // and there may be underflows
         set_timeout(
-            1000 * buffer_size_frames as i32 / sample_rate as i32,
+            (1000 * (buffer_size_frames as i32)) / (sample_rate as i32),
             stream.clone().clone(),
             data_callback,
             &config,
             sample_format,
-            buffer_size_frames as u32,
+            buffer_size_frames as u32
         );
     }
 }
@@ -347,9 +353,9 @@ fn set_timeout<D>(
     data_callback: D,
     config: &StreamConfig,
     sample_format: SampleFormat,
-    buffer_size_frames: u32,
-) where
-    D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
+    buffer_size_frames: u32
+)
+    where D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static
 {
     let window = web_sys::window().expect("Not in a window somehow?");
     window
@@ -359,9 +365,9 @@ fn set_timeout<D>(
                 .expect("The function was somehow not a function"),
             time,
             &stream.into(),
-            &((*config).clone()).into(),
+            &(*config).clone().into(),
             &Closure::once_into_js(move || sample_format),
-            &buffer_size_frames.into(),
+            &buffer_size_frames.into()
         )
         .expect("The timeout could not be set");
 }
@@ -392,11 +398,7 @@ fn default_input_device() -> Option<Device> {
 
 #[inline]
 fn default_output_device() -> Option<Device> {
-    if is_webaudio_available() {
-        Some(Device)
-    } else {
-        None
-    }
+    if is_webaudio_available() { Some(Device) } else { None }
 }
 
 // Detects whether the `AudioContext` global variable is available.
@@ -406,17 +408,17 @@ fn is_webaudio_available() -> bool {
 
 // Whether or not the given stream configuration is valid for building a stream.
 fn valid_config(conf: &StreamConfig, sample_format: SampleFormat) -> bool {
-    conf.channels <= MAX_CHANNELS
-        && conf.channels >= MIN_CHANNELS
-        && conf.sample_rate <= MAX_SAMPLE_RATE
-        && conf.sample_rate >= MIN_SAMPLE_RATE
-        && sample_format == SUPPORTED_SAMPLE_FORMAT
+    conf.channels <= MAX_CHANNELS &&
+        conf.channels >= MIN_CHANNELS &&
+        conf.sample_rate <= MAX_SAMPLE_RATE &&
+        conf.sample_rate >= MIN_SAMPLE_RATE &&
+        sample_format == SUPPORTED_SAMPLE_FORMAT
 }
 
 // Convert the given duration in frames at the given sample rate to a `std::time::Duration`.
 fn frames_to_duration(frames: usize, rate: usize) -> std::time::Duration {
-    let secsf = frames as f64 / rate as f64;
+    let secsf = (frames as f64) / (rate as f64);
     let secs = secsf as u64;
-    let nanos = ((secsf - secs as f64) * 1_000_000_000.0) as u32;
+    let nanos = ((secsf - (secs as f64)) * 1_000_000_000.0) as u32;
     std::time::Duration::new(secs, nanos)
 }

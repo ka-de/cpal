@@ -1,7 +1,7 @@
 use super::alsa;
-use super::{Device, DeviceHandles};
-use crate::{BackendSpecificError, DevicesError};
-use std::sync::{Arc, Mutex};
+use super::{ Device, DeviceHandles };
+use crate::{ BackendSpecificError, DevicesError };
+use std::sync::{ Arc, Mutex };
 
 /// ALSA's implementation for `Devices`.
 pub struct Devices {
@@ -25,12 +25,18 @@ impl Iterator for Devices {
     fn next(&mut self) -> Option<Device> {
         loop {
             match self.hint_iter.next() {
-                None => return None,
+                None => {
+                    return None;
+                }
                 Some(hint) => {
                     let name = match hint.name {
-                        None => continue,
+                        None => {
+                            continue;
+                        }
                         // Ignoring the `null` device.
-                        Some(name) if name == "null" => continue,
+                        Some(name) if name == "null" => {
+                            continue;
+                        }
                         Some(name) => name,
                     };
 

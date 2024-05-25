@@ -2,22 +2,37 @@ extern crate alsa;
 extern crate libc;
 
 use self::alsa::poll::Descriptors;
-use crate::traits::{DeviceTrait, HostTrait, StreamTrait};
+use crate::traits::{ DeviceTrait, HostTrait, StreamTrait };
 use crate::{
-    BackendSpecificError, BufferSize, BuildStreamError, ChannelCount, Data,
-    DefaultStreamConfigError, DeviceNameError, DevicesError, InputCallbackInfo, OutputCallbackInfo,
-    PauseStreamError, PlayStreamError, SampleFormat, SampleRate, StreamConfig, StreamError,
-    SupportedBufferSize, SupportedStreamConfig, SupportedStreamConfigRange,
+    BackendSpecificError,
+    BufferSize,
+    BuildStreamError,
+    ChannelCount,
+    Data,
+    DefaultStreamConfigError,
+    DeviceNameError,
+    DevicesError,
+    InputCallbackInfo,
+    OutputCallbackInfo,
+    PauseStreamError,
+    PlayStreamError,
+    SampleFormat,
+    SampleRate,
+    StreamConfig,
+    StreamError,
+    SupportedBufferSize,
+    SupportedStreamConfig,
+    SupportedStreamConfigRange,
     SupportedStreamConfigsError,
 };
 use std::cmp;
 use std::convert::TryInto;
-use std::sync::{Arc, Mutex};
-use std::thread::{self, JoinHandle};
+use std::sync::{ Arc, Mutex };
+use std::thread::{ self, JoinHandle };
 use std::time::Duration;
 use std::vec::IntoIter as VecIntoIter;
 
-pub use self::enumerate::{default_input_device, default_output_device, Devices};
+pub use self::enumerate::{ default_input_device, default_output_device, Devices };
 
 pub type SupportedInputConfigs = VecIntoIter<SupportedStreamConfigRange>;
 pub type SupportedOutputConfigs = VecIntoIter<SupportedStreamConfigRange>;
@@ -66,13 +81,13 @@ impl DeviceTrait for Device {
     }
 
     fn supported_input_configs(
-        &self,
+        &self
     ) -> Result<Self::SupportedInputConfigs, SupportedStreamConfigsError> {
         Device::supported_input_configs(self)
     }
 
     fn supported_output_configs(
-        &self,
+        &self
     ) -> Result<Self::SupportedOutputConfigs, SupportedStreamConfigsError> {
         Device::supported_output_configs(self)
     }
@@ -91,19 +106,19 @@ impl DeviceTrait for Device {
         sample_format: SampleFormat,
         data_callback: D,
         error_callback: E,
-        timeout: Option<Duration>,
-    ) -> Result<Self::Stream, BuildStreamError>
-    where
-        D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        timeout: Option<Duration>
+    )
+        -> Result<Self::Stream, BuildStreamError>
+        where
+            D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
-        let stream_inner =
-            self.build_stream_inner(conf, sample_format, alsa::Direction::Capture)?;
+        let stream_inner = self.build_stream_inner(conf, sample_format, alsa::Direction::Capture)?;
         let stream = Stream::new_input(
             Arc::new(stream_inner),
             data_callback,
             error_callback,
-            timeout,
+            timeout
         );
         Ok(stream)
     }
@@ -114,19 +129,19 @@ impl DeviceTrait for Device {
         sample_format: SampleFormat,
         data_callback: D,
         error_callback: E,
-        timeout: Option<Duration>,
-    ) -> Result<Self::Stream, BuildStreamError>
-    where
-        D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        timeout: Option<Duration>
+    )
+        -> Result<Self::Stream, BuildStreamError>
+        where
+            D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
-        let stream_inner =
-            self.build_stream_inner(conf, sample_format, alsa::Direction::Playback)?;
+        let stream_inner = self.build_stream_inner(conf, sample_format, alsa::Direction::Playback)?;
         let stream = Stream::new_output(
             Arc::new(stream_inner),
             data_callback,
             error_callback,
-            timeout,
+            timeout
         );
         Ok(stream)
     }
@@ -154,7 +169,7 @@ impl TriggerReceiver {
 
 fn trigger() -> (TriggerSender, TriggerReceiver) {
     let mut fds = [0, 0];
-    match unsafe { libc::pipe(fds.as_mut_ptr()) } {
+    match (unsafe { libc::pipe(fds.as_mut_ptr()) }) {
         0 => (TriggerSender(fds[1]), TriggerReceiver(fds[0])),
         _ => panic!("Could not create pipe"),
     }
@@ -203,7 +218,7 @@ impl DeviceHandles {
     fn try_open(
         &mut self,
         name: &str,
-        stream_type: alsa::Direction,
+        stream_type: alsa::Direction
     ) -> Result<&mut Option<alsa::PCM>, alsa::Error> {
         let handle = match stream_type {
             alsa::Direction::Playback => &mut self.playback,
@@ -222,7 +237,7 @@ impl DeviceHandles {
     fn get_mut(
         &mut self,
         name: &str,
-        stream_type: alsa::Direction,
+        stream_type: alsa::Direction
     ) -> Result<&mut alsa::PCM, alsa::Error> {
         Ok(self.try_open(name, stream_type)?.as_mut().unwrap())
     }
@@ -245,19 +260,24 @@ impl Device {
         &self,
         conf: &StreamConfig,
         sample_format: SampleFormat,
-        stream_type: alsa::Direction,
+        stream_type: alsa::Direction
     ) -> Result<StreamInner, BuildStreamError> {
-        let handle_result = self
-            .handles
+        let handle_result = self.handles
             .lock()
             .unwrap()
             .take(&self.name, stream_type)
             .map_err(|e| (e, e.errno()));
 
         let handle = match handle_result {
-            Err((_, libc::EBUSY)) => return Err(BuildStreamError::DeviceNotAvailable),
-            Err((_, libc::EINVAL)) => return Err(BuildStreamError::InvalidArgument),
-            Err((e, _)) => return Err(e.into()),
+            Err((_, libc::EBUSY)) => {
+                return Err(BuildStreamError::DeviceNotAvailable);
+            }
+            Err((_, libc::EINVAL)) => {
+                return Err(BuildStreamError::InvalidArgument);
+            }
+            Err((e, _)) => {
+                return Err(e.into());
+            }
             Ok(handle) => handle,
         };
         let can_pause = set_hw_params_from_format(&handle, conf, sample_format)?;
@@ -304,19 +324,21 @@ impl Device {
 
     fn supported_configs(
         &self,
-        stream_t: alsa::Direction,
+        stream_t: alsa::Direction
     ) -> Result<VecIntoIter<SupportedStreamConfigRange>, SupportedStreamConfigsError> {
         let mut guard = self.handles.lock().unwrap();
-        let handle_result = guard
-            .get_mut(&self.name, stream_t)
-            .map_err(|e| (e, e.errno()));
+        let handle_result = guard.get_mut(&self.name, stream_t).map_err(|e| (e, e.errno()));
 
         let handle = match handle_result {
             Err((_, libc::ENOENT)) | Err((_, libc::EBUSY)) => {
-                return Err(SupportedStreamConfigsError::DeviceNotAvailable)
+                return Err(SupportedStreamConfigsError::DeviceNotAvailable);
             }
-            Err((_, libc::EINVAL)) => return Err(SupportedStreamConfigsError::InvalidArgument),
-            Err((e, _)) => return Err(e.into()),
+            Err((_, libc::EINVAL)) => {
+                return Err(SupportedStreamConfigsError::InvalidArgument);
+            }
+            Err((e, _)) => {
+                return Err(e.into());
+            }
             Ok(handle) => handle,
         };
 
@@ -402,11 +424,7 @@ impl Device {
         let max_channels = cmp::min(max_channels, 32); // TODO: limiting to 32 channels or too much stuff is returned
         let supported_channels = (min_channels..max_channels + 1)
             .filter_map(|num| {
-                if hw_params.test_channels(num).is_ok() {
-                    Some(num as ChannelCount)
-                } else {
-                    None
-                }
+                if hw_params.test_channels(num).is_ok() { Some(num as ChannelCount) } else { None }
             })
             .collect::<Vec<_>>();
 
@@ -419,7 +437,7 @@ impl Device {
         };
 
         let mut output = Vec::with_capacity(
-            supported_formats.len() * supported_channels.len() * sample_rates.len(),
+            supported_formats.len() * supported_channels.len() * sample_rates.len()
         );
         for &sample_format in supported_formats.iter() {
             for &channels in supported_channels.iter() {
@@ -439,13 +457,13 @@ impl Device {
     }
 
     fn supported_input_configs(
-        &self,
+        &self
     ) -> Result<SupportedInputConfigs, SupportedStreamConfigsError> {
         self.supported_configs(alsa::Direction::Capture)
     }
 
     fn supported_output_configs(
-        &self,
+        &self
     ) -> Result<SupportedOutputConfigs, SupportedStreamConfigsError> {
         self.supported_configs(alsa::Direction::Playback)
     }
@@ -454,7 +472,7 @@ impl Device {
     // the `SupportedStreamConfigRange::cmp_default_heuristics` order and select the greatest.
     fn default_config(
         &self,
-        stream_t: alsa::Direction,
+        stream_t: alsa::Direction
     ) -> Result<SupportedStreamConfig, DefaultStreamConfigError> {
         let mut formats: Vec<_> = {
             match self.supported_configs(stream_t) {
@@ -580,15 +598,16 @@ fn input_stream_worker(
     stream: &StreamInner,
     data_callback: &mut (dyn FnMut(&Data, &InputCallbackInfo) + Send + 'static),
     error_callback: &mut (dyn FnMut(StreamError) + Send + 'static),
-    timeout: Option<Duration>,
+    timeout: Option<Duration>
 ) {
     let mut ctxt = StreamWorkerContext::new(&timeout);
     loop {
-        let flow =
-            poll_descriptors_and_prepare_buffer(&rx, stream, &mut ctxt).unwrap_or_else(|err| {
+        let flow = poll_descriptors_and_prepare_buffer(&rx, stream, &mut ctxt).unwrap_or_else(
+            |err| {
                 error_callback(err.into());
                 PollDescriptorsFlow::Continue
-            });
+            }
+        );
 
         match flow {
             PollDescriptorsFlow::Continue => {
@@ -600,25 +619,24 @@ fn input_stream_worker(
                 }
                 continue;
             }
-            PollDescriptorsFlow::Return => return,
-            PollDescriptorsFlow::Ready {
-                status,
-                avail_frames: _,
-                delay_frames,
-                stream_type,
-            } => {
+            PollDescriptorsFlow::Return => {
+                return;
+            }
+            PollDescriptorsFlow::Ready { status, avail_frames: _, delay_frames, stream_type } => {
                 assert_eq!(
                     stream_type,
                     StreamType::Input,
-                    "expected input stream, but polling descriptors indicated output",
+                    "expected input stream, but polling descriptors indicated output"
                 );
-                if let Err(err) = process_input(
-                    stream,
-                    &mut ctxt.buffer,
-                    status,
-                    delay_frames,
-                    data_callback,
-                ) {
+                if
+                    let Err(err) = process_input(
+                        stream,
+                        &mut ctxt.buffer,
+                        status,
+                        delay_frames,
+                        data_callback
+                    )
+                {
                     error_callback(err.into());
                 }
             }
@@ -631,45 +649,47 @@ fn output_stream_worker(
     stream: &StreamInner,
     data_callback: &mut (dyn FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static),
     error_callback: &mut (dyn FnMut(StreamError) + Send + 'static),
-    timeout: Option<Duration>,
+    timeout: Option<Duration>
 ) {
     let mut ctxt = StreamWorkerContext::new(&timeout);
     loop {
-        let flow =
-            poll_descriptors_and_prepare_buffer(&rx, stream, &mut ctxt).unwrap_or_else(|err| {
+        let flow = poll_descriptors_and_prepare_buffer(&rx, stream, &mut ctxt).unwrap_or_else(
+            |err| {
                 error_callback(err.into());
                 PollDescriptorsFlow::Continue
-            });
+            }
+        );
 
         match flow {
-            PollDescriptorsFlow::Continue => continue,
+            PollDescriptorsFlow::Continue => {
+                continue;
+            }
             PollDescriptorsFlow::XRun => {
                 if let Err(err) = stream.channel.prepare() {
                     error_callback(err.into());
                 }
                 continue;
             }
-            PollDescriptorsFlow::Return => return,
-            PollDescriptorsFlow::Ready {
-                status,
-                avail_frames,
-                delay_frames,
-                stream_type,
-            } => {
+            PollDescriptorsFlow::Return => {
+                return;
+            }
+            PollDescriptorsFlow::Ready { status, avail_frames, delay_frames, stream_type } => {
                 assert_eq!(
                     stream_type,
                     StreamType::Output,
-                    "expected output stream, but polling descriptors indicated input",
+                    "expected output stream, but polling descriptors indicated input"
                 );
-                if let Err(err) = process_output(
-                    stream,
-                    &mut ctxt.buffer,
-                    status,
-                    avail_frames,
-                    delay_frames,
-                    data_callback,
-                    error_callback,
-                ) {
+                if
+                    let Err(err) = process_output(
+                        stream,
+                        &mut ctxt.buffer,
+                        status,
+                        avail_frames,
+                        delay_frames,
+                        data_callback,
+                        error_callback
+                    )
+                {
                     error_callback(err.into());
                 }
             }
@@ -693,13 +713,9 @@ enum PollDescriptorsFlow {
 fn poll_descriptors_and_prepare_buffer(
     rx: &TriggerReceiver,
     stream: &StreamInner,
-    ctxt: &mut StreamWorkerContext,
+    ctxt: &mut StreamWorkerContext
 ) -> Result<PollDescriptorsFlow, BackendSpecificError> {
-    let StreamWorkerContext {
-        ref mut descriptors,
-        ref mut buffer,
-        ref poll_timeout,
-    } = *ctxt;
+    let StreamWorkerContext { ref mut descriptors, ref mut buffer, ref poll_timeout } = *ctxt;
 
     descriptors.clear();
 
@@ -712,14 +728,11 @@ fn poll_descriptors_and_prepare_buffer(
 
     // Add ALSA polling fds.
     let len = descriptors.len();
-    descriptors.resize(
-        stream.num_descriptors + len,
-        libc::pollfd {
-            fd: 0,
-            events: 0,
-            revents: 0,
-        },
-    );
+    descriptors.resize(stream.num_descriptors + len, libc::pollfd {
+        fd: 0,
+        events: 0,
+        revents: 0,
+    });
     let filled = stream.channel.fill(&mut descriptors[len..])?;
     debug_assert_eq!(filled, stream.num_descriptors);
 
@@ -751,16 +764,18 @@ fn poll_descriptors_and_prepare_buffer(
     };
 
     let status = stream.channel.status()?;
-    let avail_frames = match stream.channel.avail() {
-        Err(err) if err.errno() == libc::EPIPE => return Ok(PollDescriptorsFlow::XRun),
+    let avail_frames = (match stream.channel.avail() {
+        Err(err) if err.errno() == libc::EPIPE => {
+            return Ok(PollDescriptorsFlow::XRun);
+        }
         res => res,
-    }? as usize;
+    })? as usize;
     let delay_frames = match status.get_delay() {
         // Buffer underrun. TODO: Notify the user.
         d if d < 0 => 0,
         d => d as usize,
     };
-    let available_samples = avail_frames * stream.conf.channels as usize;
+    let available_samples = avail_frames * (stream.conf.channels as usize);
 
     // Only go on if there is at least `stream.period_len` samples.
     if available_samples < stream.period_len {
@@ -785,7 +800,7 @@ fn process_input(
     buffer: &mut [u8],
     status: alsa::pcm::Status,
     delay_frames: usize,
-    data_callback: &mut (dyn FnMut(&Data, &InputCallbackInfo) + Send + 'static),
+    data_callback: &mut (dyn FnMut(&Data, &InputCallbackInfo) + Send + 'static)
 ) -> Result<(), BackendSpecificError> {
     stream.channel.io_bytes().readi(buffer)?;
     let sample_format = stream.sample_format;
@@ -814,7 +829,7 @@ fn process_output(
     available_frames: usize,
     delay_frames: usize,
     data_callback: &mut (dyn FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static),
-    error_callback: &mut dyn FnMut(StreamError),
+    error_callback: &mut dyn FnMut(StreamError)
 ) -> Result<(), BackendSpecificError> {
     {
         // We're now sure that we're ready to write data.
@@ -846,9 +861,10 @@ fn process_output(
                 let description = format!(
                     "unexpected number of frames written: expected {}, \
                      result {} (this should never happen)",
-                    available_frames, result,
+                    available_frames,
+                    result
                 );
-                error_callback(BackendSpecificError { description }.into());
+                error_callback((BackendSpecificError { description }).into());
                 continue;
             }
             _ => {
@@ -864,7 +880,7 @@ fn process_output(
 // This ensures positive values that are compatible with our `StreamInstant` representation.
 fn stream_timestamp(
     status: &alsa::pcm::Status,
-    creation_instant: Option<std::time::Instant>,
+    creation_instant: Option<std::time::Instant>
 ) -> Result<crate::StreamInstant, BackendSpecificError> {
     match creation_instant {
         None => {
@@ -874,7 +890,10 @@ fn stream_timestamp(
             if nanos < 0 {
                 let description = format!(
                     "get_htstamp `{}.{}` was earlier than get_trigger_htstamp `{}.{}`",
-                    ts.tv_sec, ts.tv_nsec, trigger_ts.tv_sec, trigger_ts.tv_nsec
+                    ts.tv_sec,
+                    ts.tv_nsec,
+                    trigger_ts.tv_sec,
+                    trigger_ts.tv_nsec
                 );
                 return Err(BackendSpecificError { description });
             }
@@ -883,12 +902,11 @@ fn stream_timestamp(
         Some(creation) => {
             let now = std::time::Instant::now();
             let duration = now.duration_since(creation);
-            crate::StreamInstant::from_nanos_i128(duration.as_nanos() as i128).ok_or(
-                BackendSpecificError {
-                    description: "stream duration has exceeded `StreamInstant` representation"
-                        .to_string(),
-                },
-            )
+            crate::StreamInstant
+                ::from_nanos_i128(duration.as_nanos() as i128)
+                .ok_or(BackendSpecificError {
+                    description: "stream duration has exceeded `StreamInstant` representation".to_string(),
+                })
         }
     }
 }
@@ -896,7 +914,7 @@ fn stream_timestamp(
 // Adapted from `timestamp2ns` here:
 // https://fossies.org/linux/alsa-lib/test/audio_time.c
 fn timespec_to_nanos(ts: libc::timespec) -> i64 {
-    ts.tv_sec as i64 * 1_000_000_000 + ts.tv_nsec as i64
+    (ts.tv_sec as i64) * 1_000_000_000 + (ts.tv_nsec as i64)
 }
 
 // Adapted from `timediff` here:
@@ -907,9 +925,9 @@ fn timespec_diff_nanos(a: libc::timespec, b: libc::timespec) -> i64 {
 
 // Convert the given duration in frames at the given sample rate to a `std::time::Duration`.
 fn frames_to_duration(frames: usize, rate: crate::SampleRate) -> std::time::Duration {
-    let secsf = frames as f64 / rate.0 as f64;
+    let secsf = (frames as f64) / (rate.0 as f64);
     let secs = secsf as u64;
-    let nanos = ((secsf - secs as f64) * 1_000_000_000.0) as u32;
+    let nanos = ((secsf - (secs as f64)) * 1_000_000_000.0) as u32;
     std::time::Duration::new(secs, nanos)
 }
 
@@ -918,25 +936,21 @@ impl Stream {
         inner: Arc<StreamInner>,
         mut data_callback: D,
         mut error_callback: E,
-        timeout: Option<Duration>,
-    ) -> Stream
-    where
-        D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        timeout: Option<Duration>
+    )
+        -> Stream
+        where
+            D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
         let (tx, rx) = trigger();
         // Clone the handle for passing into worker thread.
         let stream = inner.clone();
-        let thread = thread::Builder::new()
+        let thread = thread::Builder
+            ::new()
             .name("cpal_alsa_in".to_owned())
             .spawn(move || {
-                input_stream_worker(
-                    rx,
-                    &stream,
-                    &mut data_callback,
-                    &mut error_callback,
-                    timeout,
-                );
+                input_stream_worker(rx, &stream, &mut data_callback, &mut error_callback, timeout);
             })
             .unwrap();
         Stream {
@@ -950,25 +964,21 @@ impl Stream {
         inner: Arc<StreamInner>,
         mut data_callback: D,
         mut error_callback: E,
-        timeout: Option<Duration>,
-    ) -> Stream
-    where
-        D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        timeout: Option<Duration>
+    )
+        -> Stream
+        where
+            D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
         let (tx, rx) = trigger();
         // Clone the handle for passing into worker thread.
         let stream = inner.clone();
-        let thread = thread::Builder::new()
+        let thread = thread::Builder
+            ::new()
             .name("cpal_alsa_out".to_owned())
             .spawn(move || {
-                output_stream_worker(
-                    rx,
-                    &stream,
-                    &mut data_callback,
-                    &mut error_callback,
-                    timeout,
-                );
+                output_stream_worker(rx, &stream, &mut data_callback, &mut error_callback, timeout);
             })
             .unwrap();
         Stream {
@@ -1000,7 +1010,7 @@ impl StreamTrait for Stream {
 fn set_hw_params_from_format(
     pcm_handle: &alsa::pcm::PCM,
     config: &StreamConfig,
-    sample_format: SampleFormat,
+    sample_format: SampleFormat
 ) -> Result<bool, BackendSpecificError> {
     let hw_params = alsa::pcm::HwParams::any(pcm_handle)?;
     hw_params.set_access(alsa::pcm::Access::RWInterleaved)?;
@@ -1023,11 +1033,8 @@ fn set_hw_params_from_format(
             SampleFormat::F64 => alsa::pcm::Format::Float64BE,
             sample_format => {
                 return Err(BackendSpecificError {
-                    description: format!(
-                        "Sample format '{}' is not supported by this backend",
-                        sample_format
-                    ),
-                })
+                    description: format!("Sample format '{}' is not supported by this backend", sample_format),
+                });
             }
         }
     } else {
@@ -1048,11 +1055,8 @@ fn set_hw_params_from_format(
             SampleFormat::F64 => alsa::pcm::Format::Float64LE,
             sample_format => {
                 return Err(BackendSpecificError {
-                    description: format!(
-                        "Sample format '{}' is not supported by this backend",
-                        sample_format
-                    ),
-                })
+                    description: format!("Sample format '{}' is not supported by this backend", sample_format),
+                });
             }
         }
     };
@@ -1082,7 +1086,7 @@ fn set_hw_params_from_format(
 fn set_sw_params_from_format(
     pcm_handle: &alsa::pcm::PCM,
     config: &StreamConfig,
-    stream_type: alsa::Direction,
+    stream_type: alsa::Direction
 ) -> Result<usize, BackendSpecificError> {
     let sw_params = pcm_handle.sw_params_current()?;
 
@@ -1106,7 +1110,7 @@ fn set_sw_params_from_format(
         };
         sw_params.set_start_threshold(start_threshold.try_into().unwrap())?;
 
-        period as usize * config.channels as usize
+        (period as usize) * (config.channels as usize)
     };
 
     sw_params.set_tstamp_mode(true)?;

@@ -1,9 +1,6 @@
-#[cfg(any(
-    target_os = "linux",
-    target_os = "dragonfly",
-    target_os = "freebsd",
-    target_os = "netbsd"
-))]
+#[cfg(
+    any(target_os = "linux", target_os = "dragonfly", target_os = "freebsd", target_os = "netbsd")
+)]
 pub(crate) mod alsa;
 #[cfg(all(windows, feature = "asio"))]
 pub(crate) mod asio;
@@ -11,15 +8,17 @@ pub(crate) mod asio;
 pub(crate) mod coreaudio;
 #[cfg(target_os = "emscripten")]
 pub(crate) mod emscripten;
-#[cfg(all(
-    any(
-        target_os = "linux",
-        target_os = "dragonfly",
-        target_os = "freebsd",
-        target_os = "netbsd"
-    ),
-    feature = "jack"
-))]
+#[cfg(
+    all(
+        any(
+            target_os = "linux",
+            target_os = "dragonfly",
+            target_os = "freebsd",
+            target_os = "netbsd"
+        ),
+        feature = "jack"
+    )
+)]
 pub(crate) mod jack;
 pub(crate) mod null;
 #[cfg(target_os = "android")]

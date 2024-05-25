@@ -5,7 +5,7 @@ extern crate walkdir;
 
 use parse_cfg::*;
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::{ Path, PathBuf };
 use std::process::Command;
 use walkdir::WalkDir;
 
@@ -23,7 +23,8 @@ fn host_os_is_windows() -> bool {
 
 /// Checks if the target env is MSVC
 fn is_msvc() -> bool {
-    let target: Target = std::env::var("TARGET")
+    let target: Target = std::env
+        ::var("TARGET")
         .expect("Target not set.")
         .parse()
         .expect("Unable to parse target.");
@@ -99,16 +100,25 @@ fn create_lib(cpal_asio_dir: &Path) {
                 }
                 Ok(entry) => entry,
             };
-            match entry.path().extension().and_then(|s| s.to_str()) {
-                None => continue,
+            match
+                entry
+                    .path()
+                    .extension()
+                    .and_then(|s| s.to_str())
+            {
+                None => {
+                    continue;
+                }
                 Some("cpp") => {
                     // Skip macos bindings
                     if entry.path().file_name().unwrap().to_str() == Some("asiodrvr.cpp") {
                         continue;
                     }
-                    paths.push(entry.path().to_path_buf())
+                    paths.push(entry.path().to_path_buf());
                 }
-                Some(_) => continue,
+                Some(_) => {
+                    continue;
+                }
             };
         }
     };
@@ -119,7 +129,8 @@ fn create_lib(cpal_asio_dir: &Path) {
     walk_a_dir(common_dir, &mut cpp_paths);
 
     // build the asio lib
-    cc::Build::new()
+    cc::Build
+        ::new()
         .include(format!("{}/{}", cpal_asio_dir.display(), "host"))
         .include(format!("{}/{}", cpal_asio_dir.display(), "common"))
         .include(format!("{}/{}", cpal_asio_dir.display(), "host/pc"))
@@ -138,18 +149,33 @@ fn create_bindings(cpal_asio_dir: &PathBuf) {
     // Recursively walk given cpal dir to find required headers
     for entry in WalkDir::new(cpal_asio_dir) {
         let entry = match entry {
-            Err(_) => continue,
+            Err(_) => {
+                continue;
+            }
             Ok(entry) => entry,
         };
-        let file_name = match entry.path().file_name().and_then(|s| s.to_str()) {
-            None => continue,
+        let file_name = match
+            entry
+                .path()
+                .file_name()
+                .and_then(|s| s.to_str())
+        {
+            None => {
+                continue;
+            }
             Some(file_name) => file_name,
         };
 
         match file_name {
-            ASIO_HEADER => asio_header = Some(entry.path().to_path_buf()),
-            ASIO_SYS_HEADER => asio_sys_header = Some(entry.path().to_path_buf()),
-            ASIO_DRIVERS_HEADER => asio_drivers_header = Some(entry.path().to_path_buf()),
+            ASIO_HEADER => {
+                asio_header = Some(entry.path().to_path_buf());
+            }
+            ASIO_SYS_HEADER => {
+                asio_sys_header = Some(entry.path().to_path_buf());
+            }
+            ASIO_DRIVERS_HEADER => {
+                asio_drivers_header = Some(entry.path().to_path_buf());
+            }
             _ => (),
         }
     }
@@ -178,7 +204,8 @@ fn create_bindings(cpal_asio_dir: &PathBuf) {
     // The bindgen::Builder is the main entry point
     // to bindgen, and lets you build up options for
     // the resulting bindings.
-    let bindings = bindgen::Builder::default()
+    let bindings = bindgen::Builder
+        ::default()
         // The input header we would like to generate
         // bindings for.
         .header(asio_header)
@@ -232,9 +259,7 @@ fn create_bindings(cpal_asio_dir: &PathBuf) {
     // Write the bindings to the $OUT_DIR/bindings.rs file.
     let out_path = PathBuf::from(env::var("OUT_DIR").expect("bad path"));
 
-    bindings
-        .write_to_file(out_path.join("asio_bindings.rs"))
-        .expect("Couldn't write bindings!");
+    bindings.write_to_file(out_path.join("asio_bindings.rs")).expect("Couldn't write bindings!");
 }
 
 /// Gets the ASIO SDK directory
@@ -264,7 +289,7 @@ fn get_asio_dir() -> PathBuf {
     }
 
     // If not found, download ASIO SDK using PowerShell's Invoke-WebRequest
-    println!("CPAL_ASIO_DIR is not set or contents are cached downloading from {ASIO_SDK_URL}",);
+    println!("CPAL_ASIO_DIR is not set or contents are cached downloading from {ASIO_SDK_URL}");
 
     download_asio_sdk_to_temp_dir(&temp_dir);
 
@@ -326,11 +351,13 @@ fn download_asio_sdk_to_temp_dir(temp_dir: &Path) {
     } else {
         let status = Command::new("sh")
             .arg("-c")
-            .arg(&format!(
-                "curl -L --fail --output {} {}",
-                asio_zip_path.display(),
-                "https://www.steinberg.net/asiosdk" // Replace with the actual ASIO SDK URL
-            ))
+            .arg(
+                &format!(
+                    "curl -L --fail --output {} {}",
+                    asio_zip_path.display(),
+                    "https://www.steinberg.net/asiosdk" // Replace with the actual ASIO SDK URL
+                )
+            )
             .status()
             .expect("Failed to execute curl command");
 
@@ -342,12 +369,7 @@ fn download_asio_sdk_to_temp_dir(temp_dir: &Path) {
         // Extract using `unzip`
         println!("Extracting ASIO SDK..");
         let status = Command::new("unzip")
-            .args([
-                "-o",
-                asio_zip_path.to_str().unwrap(),
-                "-d",
-                temp_dir.to_str().unwrap(),
-            ])
+            .args(["-o", asio_zip_path.to_str().unwrap(), "-d", temp_dir.to_str().unwrap()])
             .status()
             .expect("Failed to execute unzip command for extracting ASIO SDK");
 
@@ -370,10 +392,7 @@ fn invoke_vcvars_if_not_set() {
     println!("Determining system architecture..");
 
     let arch_arg = determine_vcvarsall_bat_arch_arg();
-    println!(
-        "Host architecture is detected as {}.",
-        std::env::consts::ARCH
-    );
+    println!("Host architecture is detected as {}.", std::env::consts::ARCH);
     println!("Architecture argument for vcvarsall.bat will be used as: {arch_arg}.");
 
     let vcvars_all_bat_path = search_vcvars_all_bat();
@@ -385,13 +404,7 @@ fn invoke_vcvars_if_not_set() {
 
     // Invoke vcvarsall.bat
     let output = Command::new("cmd")
-        .args([
-            "/c",
-            vcvars_all_bat_path.to_str().unwrap(),
-            &arch_arg,
-            "&&",
-            "set",
-        ])
+        .args(["/c", vcvars_all_bat_path.to_str().unwrap(), &arch_arg, "&&", "set"])
         .output()
         .expect("Failed to execute command");
 
@@ -438,8 +451,7 @@ fn search_vcvars_all_bat() -> PathBuf {
         for entry in WalkDir::new(path)
             .into_iter()
             .filter_map(Result::ok)
-            .filter(|e| !e.file_type().is_dir())
-        {
+            .filter(|e| !e.file_type().is_dir()) {
             if entry.path().ends_with("vcvarsall.bat") {
                 found.replace(entry.path().to_path_buf());
             }
@@ -448,9 +460,10 @@ fn search_vcvars_all_bat() -> PathBuf {
 
     match found {
         Some(path) => path,
-        None => panic!(
-            "Could not find vcvarsall.bat. Please install the latest version of Visual Studio."
-        ),
+        None =>
+            panic!(
+                "Could not find vcvarsall.bat. Please install the latest version of Visual Studio."
+            ),
     }
 }
 
@@ -491,18 +504,34 @@ fn guess_vcvars_all_bat() -> Option<PathBuf> {
         let mut constructed = base.to_path_buf();
         for entry in WalkDir::new(&constructed).max_depth(1) {
             let entry = match entry {
-                Err(_) => continue,
+                Err(_) => {
+                    continue;
+                }
                 Ok(entry) => entry,
             };
-            if let Some(year) = is_year(entry.path().file_name().and_then(|s| s.to_str())) {
+            if
+                let Some(year) = is_year(
+                    entry
+                        .path()
+                        .file_name()
+                        .and_then(|s| s.to_str())
+                )
+            {
                 constructed = constructed.join(year);
                 for entry in WalkDir::new(&constructed).max_depth(1) {
                     let entry = match entry {
-                        Err(_) => continue,
+                        Err(_) => {
+                            continue;
+                        }
                         Ok(entry) => entry,
                     };
-                    if let Some(edition) =
-                        is_edition(entry.path().file_name().and_then(|s| s.to_str()))
+                    if
+                        let Some(edition) = is_edition(
+                            entry
+                                .path()
+                                .file_name()
+                                .and_then(|s| s.to_str())
+                        )
                     {
                         constructed = constructed
                             .join(edition)
@@ -524,7 +553,7 @@ fn guess_vcvars_all_bat() -> Option<PathBuf> {
 
     construct_path(&vs_2022_and_onwards_base).map_or_else(
         || construct_path(&vs_2019_and_2017_base).map_or_else(|| None, Some),
-        Some,
+        Some
     )
 }
 

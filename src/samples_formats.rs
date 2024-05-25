@@ -1,8 +1,8 @@
-use std::{fmt::Display, mem};
+use std::{ fmt::Display, mem };
 #[cfg(target_os = "emscripten")]
 use wasm_bindgen::prelude::*;
 
-pub use dasp_sample::{FromSample, Sample, I24, I48, U24, U48};
+pub use dasp_sample::{ FromSample, Sample, I24, I48, U24, U48 };
 
 /// Format that each sample has. Usually, this corresponds to the sampling
 /// depth of the audio source. For example, 16 bit quantized samples can be
@@ -108,23 +108,24 @@ impl SampleFormat {
 
 impl Display for SampleFormat {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match *self {
-            SampleFormat::I8 => "i8",
-            SampleFormat::I16 => "i16",
-            // SampleFormat::I24 => "i24",
-            SampleFormat::I32 => "i32",
-            // SampleFormat::I48 => "i48",
-            SampleFormat::I64 => "i64",
-            SampleFormat::U8 => "u8",
-            SampleFormat::U16 => "u16",
-            // SampleFormat::U24 => "u24",
-            SampleFormat::U32 => "u32",
-            // SampleFormat::U48 => "u48",
-            SampleFormat::U64 => "u64",
-            SampleFormat::F32 => "f32",
-            SampleFormat::F64 => "f64",
-        }
-        .fmt(f)
+        (
+            match *self {
+                SampleFormat::I8 => "i8",
+                SampleFormat::I16 => "i16",
+                // SampleFormat::I24 => "i24",
+                SampleFormat::I32 => "i32",
+                // SampleFormat::I48 => "i48",
+                SampleFormat::I64 => "i64",
+                SampleFormat::U8 => "u8",
+                SampleFormat::U16 => "u16",
+                // SampleFormat::U24 => "u24",
+                SampleFormat::U32 => "u32",
+                // SampleFormat::U48 => "u48",
+                SampleFormat::U64 => "u64",
+                SampleFormat::F32 => "f32",
+                SampleFormat::F64 => "f64",
+            }
+        ).fmt(f)
     }
 }
 

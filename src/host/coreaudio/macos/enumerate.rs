@@ -1,14 +1,21 @@
 extern crate coreaudio;
 
 use self::coreaudio::sys::{
-    kAudioHardwareNoError, kAudioHardwarePropertyDefaultInputDevice,
-    kAudioHardwarePropertyDefaultOutputDevice, kAudioHardwarePropertyDevices,
-    kAudioObjectPropertyElementMaster, kAudioObjectPropertyScopeGlobal, kAudioObjectSystemObject,
-    AudioDeviceID, AudioObjectGetPropertyData, AudioObjectGetPropertyDataSize,
-    AudioObjectPropertyAddress, OSStatus,
+    kAudioHardwareNoError,
+    kAudioHardwarePropertyDefaultInputDevice,
+    kAudioHardwarePropertyDefaultOutputDevice,
+    kAudioHardwarePropertyDevices,
+    kAudioObjectPropertyElementMaster,
+    kAudioObjectPropertyScopeGlobal,
+    kAudioObjectSystemObject,
+    AudioDeviceID,
+    AudioObjectGetPropertyData,
+    AudioObjectGetPropertyDataSize,
+    AudioObjectPropertyAddress,
+    OSStatus,
 };
 use super::Device;
-use crate::{BackendSpecificError, DevicesError, SupportedStreamConfigRange};
+use crate::{ BackendSpecificError, DevicesError, SupportedStreamConfigRange };
 use std::mem;
 use std::ptr::null;
 use std::vec::IntoIter as VecIntoIter;
@@ -34,11 +41,11 @@ unsafe fn audio_devices() -> Result<Vec<AudioDeviceID>, OSStatus> {
         &property_address as *const _,
         0,
         null(),
-        &data_size as *const _ as *mut _,
+        &data_size as *const _ as *mut _
     );
     try_status_or_return!(status);
 
-    let device_count = data_size / mem::size_of::<AudioDeviceID>() as u32;
+    let device_count = data_size / (mem::size_of::<AudioDeviceID>() as u32);
     let mut audio_devices = vec![];
     audio_devices.reserve_exact(device_count as usize);
 
@@ -48,7 +55,7 @@ unsafe fn audio_devices() -> Result<Vec<AudioDeviceID>, OSStatus> {
         0,
         null(),
         &data_size as *const _ as *mut _,
-        audio_devices.as_mut_ptr() as *mut _,
+        audio_devices.as_mut_ptr() as *mut _
     );
     try_status_or_return!(status);
 
@@ -104,10 +111,10 @@ pub fn default_input_device() -> Option<Device> {
             0,
             null(),
             &data_size as *const _ as *mut _,
-            &audio_device_id as *const _ as *mut _,
+            &audio_device_id as *const _ as *mut _
         )
     };
-    if status != kAudioHardwareNoError as i32 {
+    if status != (kAudioHardwareNoError as i32) {
         return None;
     }
 
@@ -134,10 +141,10 @@ pub fn default_output_device() -> Option<Device> {
             0,
             null(),
             &data_size as *const _ as *mut _,
-            &audio_device_id as *const _ as *mut _,
+            &audio_device_id as *const _ as *mut _
         )
     };
-    if status != kAudioHardwareNoError as i32 {
+    if status != (kAudioHardwareNoError as i32) {
         return None;
     }
 

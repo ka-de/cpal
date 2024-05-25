@@ -3,10 +3,24 @@
 use std::time::Duration;
 
 use crate::{
-    BuildStreamError, Data, DefaultStreamConfigError, DeviceNameError, DevicesError,
-    InputCallbackInfo, InputDevices, OutputCallbackInfo, OutputDevices, PauseStreamError,
-    PlayStreamError, SampleFormat, SizedSample, StreamConfig, StreamError, SupportedStreamConfig,
-    SupportedStreamConfigRange, SupportedStreamConfigsError,
+    BuildStreamError,
+    Data,
+    DefaultStreamConfigError,
+    DeviceNameError,
+    DevicesError,
+    InputCallbackInfo,
+    InputDevices,
+    OutputCallbackInfo,
+    OutputDevices,
+    PauseStreamError,
+    PlayStreamError,
+    SampleFormat,
+    SizedSample,
+    StreamConfig,
+    StreamError,
+    SupportedStreamConfig,
+    SupportedStreamConfigRange,
+    SupportedStreamConfigsError,
 };
 
 /// A [`Host`] provides access to the available audio devices on the system.
@@ -105,14 +119,14 @@ pub trait DeviceTrait {
     ///
     /// Can return an error if the device is no longer valid (e.g. it has been disconnected).
     fn supported_input_configs(
-        &self,
+        &self
     ) -> Result<Self::SupportedInputConfigs, SupportedStreamConfigsError>;
 
     /// An iterator yielding output stream formats that are supported by the device.
     ///
     /// Can return an error if the device is no longer valid (e.g. it has been disconnected).
     fn supported_output_configs(
-        &self,
+        &self
     ) -> Result<Self::SupportedOutputConfigs, SupportedStreamConfigsError>;
 
     /// The default input stream format for the device.
@@ -127,25 +141,22 @@ pub trait DeviceTrait {
         config: &StreamConfig,
         mut data_callback: D,
         error_callback: E,
-        timeout: Option<Duration>,
-    ) -> Result<Self::Stream, BuildStreamError>
-    where
-        T: SizedSample,
-        D: FnMut(&[T], &InputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        timeout: Option<Duration>
+    )
+        -> Result<Self::Stream, BuildStreamError>
+        where
+            T: SizedSample,
+            D: FnMut(&[T], &InputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
         self.build_input_stream_raw(
             config,
             T::FORMAT,
             move |data, info| {
-                data_callback(
-                    data.as_slice()
-                        .expect("host supplied incorrect sample type"),
-                    info,
-                )
+                data_callback(data.as_slice().expect("host supplied incorrect sample type"), info)
             },
             error_callback,
-            timeout,
+            timeout
         )
     }
 
@@ -155,25 +166,25 @@ pub trait DeviceTrait {
         config: &StreamConfig,
         mut data_callback: D,
         error_callback: E,
-        timeout: Option<Duration>,
-    ) -> Result<Self::Stream, BuildStreamError>
-    where
-        T: SizedSample,
-        D: FnMut(&mut [T], &OutputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        timeout: Option<Duration>
+    )
+        -> Result<Self::Stream, BuildStreamError>
+        where
+            T: SizedSample,
+            D: FnMut(&mut [T], &OutputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
         self.build_output_stream_raw(
             config,
             T::FORMAT,
             move |data, info| {
                 data_callback(
-                    data.as_slice_mut()
-                        .expect("host supplied incorrect sample type"),
-                    info,
+                    data.as_slice_mut().expect("host supplied incorrect sample type"),
+                    info
                 )
             },
             error_callback,
-            timeout,
+            timeout
         )
     }
 
@@ -184,11 +195,12 @@ pub trait DeviceTrait {
         sample_format: SampleFormat,
         data_callback: D,
         error_callback: E,
-        timeout: Option<Duration>,
-    ) -> Result<Self::Stream, BuildStreamError>
-    where
-        D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static;
+        timeout: Option<Duration>
+    )
+        -> Result<Self::Stream, BuildStreamError>
+        where
+            D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static;
 
     /// Create a dynamically typed output stream.
     fn build_output_stream_raw<D, E>(
@@ -197,11 +209,12 @@ pub trait DeviceTrait {
         sample_format: SampleFormat,
         data_callback: D,
         error_callback: E,
-        timeout: Option<Duration>,
-    ) -> Result<Self::Stream, BuildStreamError>
-    where
-        D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static;
+        timeout: Option<Duration>
+    )
+        -> Result<Self::Stream, BuildStreamError>
+        where
+            D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static;
 }
 
 /// A stream created from [`Device`](DeviceTrait), with methods to control playback.

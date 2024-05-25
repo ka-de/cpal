@@ -1,13 +1,24 @@
 extern crate asio_sys as sys;
 
-use crate::traits::{DeviceTrait, HostTrait, StreamTrait};
+use crate::traits::{ DeviceTrait, HostTrait, StreamTrait };
 use crate::{
-    BuildStreamError, Data, DefaultStreamConfigError, DeviceNameError, DevicesError,
-    InputCallbackInfo, OutputCallbackInfo, PauseStreamError, PlayStreamError, SampleFormat,
-    StreamConfig, StreamError, SupportedStreamConfig, SupportedStreamConfigsError,
+    BuildStreamError,
+    Data,
+    DefaultStreamConfigError,
+    DeviceNameError,
+    DevicesError,
+    InputCallbackInfo,
+    OutputCallbackInfo,
+    PauseStreamError,
+    PlayStreamError,
+    SampleFormat,
+    StreamConfig,
+    StreamError,
+    SupportedStreamConfig,
+    SupportedStreamConfigsError,
 };
 
-pub use self::device::{Device, Devices, SupportedInputConfigs, SupportedOutputConfigs};
+pub use self::device::{ Device, Devices, SupportedInputConfigs, SupportedOutputConfigs };
 pub use self::stream::Stream;
 use std::sync::Arc;
 use std::time::Duration;
@@ -44,12 +55,16 @@ impl HostTrait for Host {
 
     fn default_input_device(&self) -> Option<Self::Device> {
         // ASIO has no concept of a default device, so just use the first.
-        self.input_devices().ok().and_then(|mut ds| ds.next())
+        self.input_devices()
+            .ok()
+            .and_then(|mut ds| ds.next())
     }
 
     fn default_output_device(&self) -> Option<Self::Device> {
         // ASIO has no concept of a default device, so just use the first.
-        self.output_devices().ok().and_then(|mut ds| ds.next())
+        self.output_devices()
+            .ok()
+            .and_then(|mut ds| ds.next())
     }
 }
 
@@ -63,13 +78,13 @@ impl DeviceTrait for Device {
     }
 
     fn supported_input_configs(
-        &self,
+        &self
     ) -> Result<Self::SupportedInputConfigs, SupportedStreamConfigsError> {
         Device::supported_input_configs(self)
     }
 
     fn supported_output_configs(
-        &self,
+        &self
     ) -> Result<Self::SupportedOutputConfigs, SupportedStreamConfigsError> {
         Device::supported_output_configs(self)
     }
@@ -88,11 +103,12 @@ impl DeviceTrait for Device {
         sample_format: SampleFormat,
         data_callback: D,
         error_callback: E,
-        timeout: Option<Duration>,
-    ) -> Result<Self::Stream, BuildStreamError>
-    where
-        D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        timeout: Option<Duration>
+    )
+        -> Result<Self::Stream, BuildStreamError>
+        where
+            D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
         Device::build_input_stream_raw(
             self,
@@ -100,7 +116,7 @@ impl DeviceTrait for Device {
             sample_format,
             data_callback,
             error_callback,
-            timeout,
+            timeout
         )
     }
 
@@ -110,11 +126,12 @@ impl DeviceTrait for Device {
         sample_format: SampleFormat,
         data_callback: D,
         error_callback: E,
-        timeout: Option<Duration>,
-    ) -> Result<Self::Stream, BuildStreamError>
-    where
-        D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        timeout: Option<Duration>
+    )
+        -> Result<Self::Stream, BuildStreamError>
+        where
+            D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
         Device::build_output_stream_raw(
             self,
@@ -122,7 +139,7 @@ impl DeviceTrait for Device {
             sample_format,
             data_callback,
             error_callback,
-            timeout,
+            timeout
         )
     }
 }

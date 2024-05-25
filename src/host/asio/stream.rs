@@ -4,11 +4,20 @@ extern crate num_traits;
 use self::num_traits::PrimInt;
 use super::Device;
 use crate::{
-    BackendSpecificError, BufferSize, BuildStreamError, Data, InputCallbackInfo,
-    OutputCallbackInfo, PauseStreamError, PlayStreamError, SampleFormat, StreamConfig, StreamError,
+    BackendSpecificError,
+    BufferSize,
+    BuildStreamError,
+    Data,
+    InputCallbackInfo,
+    OutputCallbackInfo,
+    PauseStreamError,
+    PlayStreamError,
+    SampleFormat,
+    StreamConfig,
+    StreamError,
 };
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{ AtomicBool, Ordering };
+use std::sync::{ Arc, Mutex };
 use std::time::Duration;
 
 pub struct Stream {
@@ -39,16 +48,18 @@ impl Device {
         sample_format: SampleFormat,
         mut data_callback: D,
         _error_callback: E,
-        _timeout: Option<Duration>,
-    ) -> Result<Stream, BuildStreamError>
-    where
-        D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        _timeout: Option<Duration>
+    )
+        -> Result<Stream, BuildStreamError>
+        where
+            D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
         let stream_type = self.driver.input_data_type().map_err(build_stream_err)?;
 
         // Ensure that the desired sample type is supported.
-        let expected_sample_format = super::device::convert_data_type(&stream_type)
+        let expected_sample_format = super::device
+            ::convert_data_type(&stream_type)
             .ok_or(BuildStreamError::StreamConfigNotSupported)?;
         if sample_format != expected_sample_format {
             return Err(BuildStreamError::StreamConfigNotSupported);
@@ -56,7 +67,7 @@ impl Device {
 
         let num_channels = config.channels;
         let buffer_size = self.get_or_create_input_stream(config, sample_format)?;
-        let cpal_num_samples = buffer_size * num_channels as usize;
+        let cpal_num_samples = buffer_size * (num_channels as usize);
 
         // Create the buffer depending on the size of the data type.
         let len_bytes = cpal_num_samples * sample_format.sample_size();
@@ -79,7 +90,9 @@ impl Device {
             let stream_lock = asio_streams.lock().unwrap();
             let asio_stream = match stream_lock.input {
                 Some(ref asio_stream) => asio_stream,
-                None => return,
+                None => {
+                    return;
+                }
             };
 
             /// 1. Write from the ASIO buffer to the interleaved CPAL buffer.
@@ -91,11 +104,9 @@ impl Device {
                 asio_info: &sys::CallbackInfo,
                 sample_rate: crate::SampleRate,
                 format: SampleFormat,
-                from_endianness: F,
-            ) where
-                A: Copy,
-                D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
-                F: Fn(A) -> A,
+                from_endianness: F
+            )
+                where A: Copy, D: FnMut(&Data, &InputCallbackInfo) + Send + 'static, F: Fn(A) -> A
             {
                 // 1. Write the ASIO channels to the CPAL buffer.
                 let interleaved: &mut [A] = cast_slice_mut(interleaved);
@@ -132,7 +143,7 @@ impl Device {
                         callback_info,
                         config.sample_rate,
                         SampleFormat::I16,
-                        from_le,
+                        from_le
                     );
                 }
                 (&sys::AsioSampleType::ASIOSTInt16MSB, SampleFormat::I16) => {
@@ -143,7 +154,7 @@ impl Device {
                         callback_info,
                         config.sample_rate,
                         SampleFormat::I16,
-                        from_be,
+                        from_be
                     );
                 }
 
@@ -155,7 +166,7 @@ impl Device {
                         callback_info,
                         config.sample_rate,
                         SampleFormat::F32,
-                        from_le,
+                        from_le
                     );
                 }
                 (&sys::AsioSampleType::ASIOSTFloat32MSB, SampleFormat::F32) => {
@@ -166,7 +177,7 @@ impl Device {
                         callback_info,
                         config.sample_rate,
                         SampleFormat::F32,
-                        from_be,
+                        from_be
                     );
                 }
 
@@ -178,7 +189,7 @@ impl Device {
                         callback_info,
                         config.sample_rate,
                         SampleFormat::I32,
-                        from_le,
+                        from_le
                     );
                 }
                 (&sys::AsioSampleType::ASIOSTInt32MSB, SampleFormat::I32) => {
@@ -189,7 +200,7 @@ impl Device {
                         callback_info,
                         config.sample_rate,
                         SampleFormat::I32,
-                        from_be,
+                        from_be
                     );
                 }
 
@@ -201,7 +212,7 @@ impl Device {
                         callback_info,
                         config.sample_rate,
                         SampleFormat::F64,
-                        from_le,
+                        from_le
                     );
                 }
                 (&sys::AsioSampleType::ASIOSTFloat64MSB, SampleFormat::F64) => {
@@ -212,15 +223,16 @@ impl Device {
                         callback_info,
                         config.sample_rate,
                         SampleFormat::F64,
-                        from_be,
+                        from_be
                     );
                 }
 
-                unsupported_format_pair => unreachable!(
-                    "`build_input_stream_raw` should have returned with unsupported \
+                unsupported_format_pair =>
+                    unreachable!(
+                        "`build_input_stream_raw` should have returned with unsupported \
                      format {:?}",
-                    unsupported_format_pair
-                ),
+                        unsupported_format_pair
+                    ),
             }
         });
 
@@ -244,16 +256,18 @@ impl Device {
         sample_format: SampleFormat,
         mut data_callback: D,
         _error_callback: E,
-        _timeout: Option<Duration>,
-    ) -> Result<Stream, BuildStreamError>
-    where
-        D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        _timeout: Option<Duration>
+    )
+        -> Result<Stream, BuildStreamError>
+        where
+            D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
         let stream_type = self.driver.output_data_type().map_err(build_stream_err)?;
 
         // Ensure that the desired sample type is supported.
-        let expected_sample_format = super::device::convert_data_type(&stream_type)
+        let expected_sample_format = super::device
+            ::convert_data_type(&stream_type)
             .ok_or(BuildStreamError::StreamConfigNotSupported)?;
         if sample_format != expected_sample_format {
             return Err(BuildStreamError::StreamConfigNotSupported);
@@ -261,7 +275,7 @@ impl Device {
 
         let num_channels = config.channels;
         let buffer_size = self.get_or_create_output_stream(config, sample_format)?;
-        let cpal_num_samples = buffer_size * num_channels as usize;
+        let cpal_num_samples = buffer_size * (num_channels as usize);
 
         // Create buffers depending on data type.
         let len_bytes = cpal_num_samples * sample_format.sample_size();
@@ -283,7 +297,9 @@ impl Device {
             let mut stream_lock = asio_streams.lock().unwrap();
             let asio_stream = match stream_lock.output {
                 Some(ref mut asio_stream) => asio_stream,
-                None => return,
+                None => {
+                    return;
+                }
             };
 
             // Silence the ASIO buffer that is about to be used.
@@ -309,11 +325,12 @@ impl Device {
                 asio_info: &sys::CallbackInfo,
                 sample_rate: crate::SampleRate,
                 format: SampleFormat,
-                mix_samples: F,
-            ) where
-                A: Copy,
-                D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
-                F: Fn(A, A) -> A,
+                mix_samples: F
+            )
+                where
+                    A: Copy,
+                    D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
+                    F: Fn(A, A) -> A
             {
                 // 1. Render interleaved buffer from callback.
                 let interleaved: &mut [A] = cast_slice_mut(interleaved);
@@ -335,16 +352,22 @@ impl Device {
                 let buffer_index = asio_info.buffer_index as usize;
                 if silence_asio_buffer {
                     for ch_ix in 0..n_channels {
-                        let asio_channel =
-                            asio_channel_slice_mut::<A>(asio_stream, buffer_index, ch_ix);
+                        let asio_channel = asio_channel_slice_mut::<A>(
+                            asio_stream,
+                            buffer_index,
+                            ch_ix
+                        );
                         asio_channel.align_to_mut::<u8>().1.fill(0);
                     }
                 }
 
                 // 3. Write interleaved samples to ASIO channels, one channel at a time.
                 for ch_ix in 0..n_channels {
-                    let asio_channel =
-                        asio_channel_slice_mut::<A>(asio_stream, buffer_index, ch_ix);
+                    let asio_channel = asio_channel_slice_mut::<A>(
+                        asio_stream,
+                        buffer_index,
+                        ch_ix
+                    );
                     for (frame, s_asio) in interleaved.chunks(n_channels).zip(asio_channel) {
                         *s_asio = mix_samples(*s_asio, frame[ch_ix]);
                     }
@@ -363,7 +386,7 @@ impl Device {
                         SampleFormat::I16,
                         |old_sample, new_sample| {
                             from_le(old_sample).saturating_add(new_sample).to_le()
-                        },
+                        }
                     );
                 }
                 (SampleFormat::I16, &sys::AsioSampleType::ASIOSTInt16MSB) => {
@@ -377,7 +400,7 @@ impl Device {
                         SampleFormat::I16,
                         |old_sample, new_sample| {
                             from_be(old_sample).saturating_add(new_sample).to_be()
-                        },
+                        }
                     );
                 }
                 (SampleFormat::F32, &sys::AsioSampleType::ASIOSTFloat32LSB) => {
@@ -393,7 +416,7 @@ impl Device {
                             (f32::from_bits(from_le(old_sample)) + f32::from_bits(new_sample))
                                 .to_bits()
                                 .to_le()
-                        },
+                        }
                     );
                 }
 
@@ -410,7 +433,7 @@ impl Device {
                             (f32::from_bits(from_be(old_sample)) + f32::from_bits(new_sample))
                                 .to_bits()
                                 .to_be()
-                        },
+                        }
                     );
                 }
 
@@ -425,7 +448,7 @@ impl Device {
                         SampleFormat::I32,
                         |old_sample, new_sample| {
                             from_le(old_sample).saturating_add(new_sample).to_le()
-                        },
+                        }
                     );
                 }
                 (SampleFormat::I32, &sys::AsioSampleType::ASIOSTInt32MSB) => {
@@ -439,7 +462,7 @@ impl Device {
                         SampleFormat::I32,
                         |old_sample, new_sample| {
                             from_be(old_sample).saturating_add(new_sample).to_be()
-                        },
+                        }
                     );
                 }
 
@@ -456,7 +479,7 @@ impl Device {
                             (f64::from_bits(from_le(old_sample)) + f64::from_bits(new_sample))
                                 .to_bits()
                                 .to_le()
-                        },
+                        }
                     );
                 }
 
@@ -473,15 +496,16 @@ impl Device {
                             (f64::from_bits(from_be(old_sample)) + f64::from_bits(new_sample))
                                 .to_bits()
                                 .to_be()
-                        },
+                        }
                     );
                 }
 
-                unsupported_format_pair => unreachable!(
-                    "`build_output_stream_raw` should have returned with unsupported \
+                unsupported_format_pair =>
+                    unreachable!(
+                        "`build_output_stream_raw` should have returned with unsupported \
                      format {:?}",
-                    unsupported_format_pair
-                ),
+                        unsupported_format_pair
+                    ),
             }
         });
 
@@ -507,15 +531,15 @@ impl Device {
     fn get_or_create_input_stream(
         &self,
         config: &StreamConfig,
-        sample_format: SampleFormat,
+        sample_format: SampleFormat
     ) -> Result<usize, BuildStreamError> {
-        match self.default_input_config() {
+        (match self.default_input_config() {
             Ok(f) => {
                 let num_asio_channels = f.channels;
                 check_config(&self.driver, config, sample_format, num_asio_channels)
             }
             Err(_) => Err(BuildStreamError::StreamConfigNotSupported),
-        }?;
+        })?;
         let num_channels = config.channels as usize;
         let mut streams = self.asio_streams.lock().unwrap();
 
@@ -554,15 +578,15 @@ impl Device {
     fn get_or_create_output_stream(
         &self,
         config: &StreamConfig,
-        sample_format: SampleFormat,
+        sample_format: SampleFormat
     ) -> Result<usize, BuildStreamError> {
-        match self.default_output_config() {
+        (match self.default_output_config() {
             Ok(f) => {
                 let num_asio_channels = f.channels;
                 check_config(&self.driver, config, sample_format, num_asio_channels)
             }
             Err(_) => Err(BuildStreamError::StreamConfigNotSupported),
-        }?;
+        })?;
         let num_channels = config.channels as usize;
         let mut streams = self.asio_streams.lock().unwrap();
 
@@ -604,24 +628,24 @@ impl Drop for Stream {
 
 fn asio_ns_to_double(val: sys::bindings::asio_import::ASIOTimeStamp) -> f64 {
     let two_raised_to_32 = 4294967296.0;
-    val.lo as f64 + val.hi as f64 * two_raised_to_32
+    (val.lo as f64) + (val.hi as f64) * two_raised_to_32
 }
 
 /// Asio retrieves system time via `timeGetTime` which returns the time in milliseconds.
 fn system_time_to_stream_instant(
-    system_time: sys::bindings::asio_import::ASIOTimeStamp,
+    system_time: sys::bindings::asio_import::ASIOTimeStamp
 ) -> crate::StreamInstant {
     let systime_ns = asio_ns_to_double(system_time);
-    let secs = systime_ns as i64 / 1_000_000_000;
-    let nanos = (systime_ns as i64 - secs * 1_000_000_000) as u32;
+    let secs = (systime_ns as i64) / 1_000_000_000;
+    let nanos = ((systime_ns as i64) - secs * 1_000_000_000) as u32;
     crate::StreamInstant::new(secs, nanos)
 }
 
 /// Convert the given duration in frames at the given sample rate to a `std::time::Duration`.
 fn frames_to_duration(frames: usize, rate: crate::SampleRate) -> std::time::Duration {
-    let secsf = frames as f64 / rate.0 as f64;
+    let secsf = (frames as f64) / (rate.0 as f64);
     let secs = secsf as u64;
-    let nanos = ((secsf - secs as f64) * 1_000_000_000.0) as u32;
+    let nanos = ((secsf - (secs as f64)) * 1_000_000_000.0) as u32;
     std::time::Duration::new(secs, nanos)
 }
 
@@ -632,23 +656,14 @@ fn check_config(
     driver: &sys::Driver,
     config: &StreamConfig,
     sample_format: SampleFormat,
-    num_asio_channels: u16,
+    num_asio_channels: u16
 ) -> Result<(), BuildStreamError> {
-    let StreamConfig {
-        channels,
-        sample_rate,
-        buffer_size: _,
-    } = config;
+    let StreamConfig { channels, sample_rate, buffer_size: _ } = config;
     // Try and set the sample rate to what the user selected.
     let sample_rate = sample_rate.0.into();
     if sample_rate != driver.sample_rate().map_err(build_stream_err)? {
-        if driver
-            .can_sample_rate(sample_rate)
-            .map_err(build_stream_err)?
-        {
-            driver
-                .set_sample_rate(sample_rate)
-                .map_err(build_stream_err)?;
+        if driver.can_sample_rate(sample_rate).map_err(build_stream_err)? {
+            driver.set_sample_rate(sample_rate).map_err(build_stream_err)?;
         } else {
             return Err(BuildStreamError::StreamConfigNotSupported);
         }
@@ -656,7 +671,9 @@ fn check_config(
     // unsigned formats are not supported by asio
     match sample_format {
         SampleFormat::I16 | SampleFormat::I32 | SampleFormat::F32 => (),
-        _ => return Err(BuildStreamError::StreamConfigNotSupported),
+        _ => {
+            return Err(BuildStreamError::StreamConfigNotSupported);
+        }
     }
     if *channels > num_asio_channels {
         return Err(BuildStreamError::StreamConfigNotSupported);
@@ -686,10 +703,10 @@ fn from_be<T: PrimInt>(t: T) -> T {
 unsafe fn asio_channel_slice<T>(
     asio_stream: &sys::AsioStream,
     buffer_index: usize,
-    channel_index: usize,
+    channel_index: usize
 ) -> &[T] {
-    let buff_ptr: *const T =
-        asio_stream.buffer_infos[channel_index].buffers[buffer_index as usize] as *const _;
+    let buff_ptr: *const T = asio_stream.buffer_infos[channel_index].buffers
+        [buffer_index as usize] as *const _;
     std::slice::from_raw_parts(buff_ptr, asio_stream.buffer_size as usize)
 }
 
@@ -697,10 +714,10 @@ unsafe fn asio_channel_slice<T>(
 unsafe fn asio_channel_slice_mut<T>(
     asio_stream: &mut sys::AsioStream,
     buffer_index: usize,
-    channel_index: usize,
+    channel_index: usize
 ) -> &mut [T] {
-    let buff_ptr: *mut T =
-        asio_stream.buffer_infos[channel_index].buffers[buffer_index as usize] as *mut _;
+    let buff_ptr: *mut T = asio_stream.buffer_infos[channel_index].buffers
+        [buffer_index as usize] as *mut _;
     std::slice::from_raw_parts_mut(buff_ptr, asio_stream.buffer_size as usize)
 }
 
@@ -712,7 +729,7 @@ fn build_stream_err(e: sys::AsioError) -> BuildStreamError {
         sys::AsioError::InvalidInput | sys::AsioError::BadMode => BuildStreamError::InvalidArgument,
         err => {
             let description = format!("{}", err);
-            BackendSpecificError { description }.into()
+            (BackendSpecificError { description }).into()
         }
     }
 }

@@ -6,11 +6,8 @@ extern crate anyhow;
 extern crate clap;
 extern crate cpal;
 
-use cpal::{
-    traits::{DeviceTrait, HostTrait, StreamTrait},
-    SizedSample,
-};
-use cpal::{FromSample, Sample};
+use cpal::{ traits::{ DeviceTrait, HostTrait, StreamTrait }, SizedSample };
+use cpal::{ FromSample, Sample };
 
 fn main() -> anyhow::Result<()> {
     let stream = stream_setup_for()?;
@@ -44,7 +41,7 @@ impl Oscillator {
 
     fn calculate_sine_output_from_freq(&self, freq: f32) -> f32 {
         let two_pi = 2.0 * std::f32::consts::PI;
-        (self.current_sample_index * freq * two_pi / self.sample_rate).sin()
+        ((self.current_sample_index * freq * two_pi) / self.sample_rate).sin()
     }
 
     fn is_multiple_of_freq_above_nyquist(&self, multiple: f32) -> bool {
@@ -62,7 +59,7 @@ impl Oscillator {
         let mut i = 1;
         while !self.is_multiple_of_freq_above_nyquist(i as f32) {
             let gain = 1.0 / (i as f32).powf(gain_exponent);
-            output += gain * self.calculate_sine_output_from_freq(self.frequency_hz * i as f32);
+            output += gain * self.calculate_sine_output_from_freq(self.frequency_hz * (i as f32));
             i += harmonic_index_increment;
         }
         output
@@ -90,9 +87,7 @@ impl Oscillator {
     }
 }
 
-pub fn stream_setup_for() -> Result<cpal::Stream, anyhow::Error>
-where
-{
+pub fn stream_setup_for() -> Result<cpal::Stream, anyhow::Error> {
     let (_host, device, config) = host_device_setup()?;
 
     match config.sample_format() {
@@ -106,14 +101,15 @@ where
         cpal::SampleFormat::U64 => make_stream::<u64>(&device, &config.into()),
         cpal::SampleFormat::F32 => make_stream::<f32>(&device, &config.into()),
         cpal::SampleFormat::F64 => make_stream::<f64>(&device, &config.into()),
-        sample_format => Err(anyhow::Error::msg(format!(
-            "Unsupported sample format '{sample_format}'"
-        ))),
+        sample_format =>
+            Err(anyhow::Error::msg(format!("Unsupported sample format '{sample_format}'"))),
     }
 }
 
-pub fn host_device_setup(
-) -> Result<(cpal::Host, cpal::Device, cpal::SupportedStreamConfig), anyhow::Error> {
+pub fn host_device_setup() -> Result<
+    (cpal::Host, cpal::Device, cpal::SupportedStreamConfig),
+    anyhow::Error
+> {
     let host = cpal::default_host();
 
     let device = host
@@ -129,10 +125,9 @@ pub fn host_device_setup(
 
 pub fn make_stream<T>(
     device: &cpal::Device,
-    config: &cpal::StreamConfig,
+    config: &cpal::StreamConfig
 ) -> Result<cpal::Stream, anyhow::Error>
-where
-    T: SizedSample + FromSample<f32>,
+    where T: SizedSample + FromSample<f32>
 {
     let num_channels = config.channels as usize;
     let mut oscillator = Oscillator {
@@ -150,7 +145,8 @@ where
         config,
         move |output: &mut [T], _: &cpal::OutputCallbackInfo| {
             // for 0-1s play sine, 1-2s play square, 2-3s play saw, 3-4s play triangle_wave
-            let time_since_start = std::time::Instant::now()
+            let time_since_start = std::time::Instant
+                ::now()
                 .duration_since(time_at_start)
                 .as_secs_f32();
             if time_since_start < 1.0 {
@@ -167,7 +163,7 @@ where
             process_frame(output, &mut oscillator, num_channels)
         },
         err_fn,
-        None,
+        None
     )?;
 
     Ok(stream)
@@ -176,9 +172,9 @@ where
 fn process_frame<SampleType>(
     output: &mut [SampleType],
     oscillator: &mut Oscillator,
-    num_channels: usize,
-) where
-    SampleType: Sample + FromSample<f32>,
+    num_channels: usize
+)
+    where SampleType: Sample + FromSample<f32>
 {
     for frame in output.chunks_mut(num_channels) {
         let value: SampleType = SampleType::from_sample(oscillator.tick());

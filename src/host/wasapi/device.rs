@@ -1,9 +1,21 @@
 use crate::FrameCount;
 use crate::{
-    BackendSpecificError, BufferSize, Data, DefaultStreamConfigError, DeviceNameError,
-    DevicesError, InputCallbackInfo, OutputCallbackInfo, SampleFormat, SampleRate, StreamConfig,
-    SupportedBufferSize, SupportedStreamConfig, SupportedStreamConfigRange,
-    SupportedStreamConfigsError, COMMON_SAMPLE_RATES,
+    BackendSpecificError,
+    BufferSize,
+    Data,
+    DefaultStreamConfigError,
+    DeviceNameError,
+    DevicesError,
+    InputCallbackInfo,
+    OutputCallbackInfo,
+    SampleFormat,
+    SampleRate,
+    StreamConfig,
+    SupportedBufferSize,
+    SupportedStreamConfig,
+    SupportedStreamConfigRange,
+    SupportedStreamConfigsError,
+    COMMON_SAMPLE_RATES,
 };
 use std::ffi::OsString;
 use std::fmt;
@@ -12,24 +24,24 @@ use std::os::windows::ffi::OsStringExt;
 use std::ptr;
 use std::slice;
 use std::sync::OnceLock;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{ Arc, Mutex, MutexGuard };
 use std::time::Duration;
 
 use super::com;
-use super::{windows_err_to_cpal_err, windows_err_to_cpal_err_message};
+use super::{ windows_err_to_cpal_err, windows_err_to_cpal_err_message };
 use windows::core::Interface;
 use windows::core::GUID;
 use windows::Win32::Devices::Properties;
 use windows::Win32::Foundation;
 use windows::Win32::Media::Audio::IAudioRenderClient;
-use windows::Win32::Media::{Audio, KernelStreaming, Multimedia};
+use windows::Win32::Media::{ Audio, KernelStreaming, Multimedia };
 use windows::Win32::System::Com;
-use windows::Win32::System::Com::{StructuredStorage, STGM_READ};
+use windows::Win32::System::Com::{ StructuredStorage, STGM_READ };
 use windows::Win32::System::Threading;
 use windows::Win32::System::Variant::VT_LPWSTR;
 
-use super::stream::{AudioClientFlow, Stream, StreamInner};
-use crate::{traits::DeviceTrait, BuildStreamError, StreamError};
+use super::stream::{ AudioClientFlow, Stream, StreamInner };
+use crate::{ traits::DeviceTrait, BuildStreamError, StreamError };
 
 pub type SupportedInputConfigs = std::vec::IntoIter<SupportedStreamConfigRange>;
 pub type SupportedOutputConfigs = std::vec::IntoIter<SupportedStreamConfigRange>;
@@ -59,13 +71,13 @@ impl DeviceTrait for Device {
     }
 
     fn supported_input_configs(
-        &self,
+        &self
     ) -> Result<Self::SupportedInputConfigs, SupportedStreamConfigsError> {
         Device::supported_input_configs(self)
     }
 
     fn supported_output_configs(
-        &self,
+        &self
     ) -> Result<Self::SupportedOutputConfigs, SupportedStreamConfigsError> {
         Device::supported_output_configs(self)
     }
@@ -84,18 +96,15 @@ impl DeviceTrait for Device {
         sample_format: SampleFormat,
         data_callback: D,
         error_callback: E,
-        _timeout: Option<Duration>,
-    ) -> Result<Self::Stream, BuildStreamError>
-    where
-        D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        _timeout: Option<Duration>
+    )
+        -> Result<Self::Stream, BuildStreamError>
+        where
+            D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
         let stream_inner = self.build_input_stream_raw_inner(config, sample_format)?;
-        Ok(Stream::new_input(
-            stream_inner,
-            data_callback,
-            error_callback,
-        ))
+        Ok(Stream::new_input(stream_inner, data_callback, error_callback))
     }
 
     fn build_output_stream_raw<D, E>(
@@ -104,18 +113,15 @@ impl DeviceTrait for Device {
         sample_format: SampleFormat,
         data_callback: D,
         error_callback: E,
-        _timeout: Option<Duration>,
-    ) -> Result<Self::Stream, BuildStreamError>
-    where
-        D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        _timeout: Option<Duration>
+    )
+        -> Result<Self::Stream, BuildStreamError>
+        where
+            D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
         let stream_inner = self.build_output_stream_raw_inner(config, sample_format)?;
-        Ok(Stream::new_output(
-            stream_inner,
-            data_callback,
-            error_callback,
-        ))
+        Ok(Stream::new_output(stream_inner, data_callback, error_callback))
     }
 }
 
@@ -141,22 +147,20 @@ unsafe fn immendpoint_from_immdevice(device: Audio::IMMDevice) -> Audio::IMMEndp
 }
 
 unsafe fn data_flow_from_immendpoint(endpoint: &Audio::IMMEndpoint) -> Audio::EDataFlow {
-    endpoint
-        .GetDataFlow()
-        .expect("could not get endpoint data_flow")
+    endpoint.GetDataFlow().expect("could not get endpoint data_flow")
 }
 
 // Given the audio client and format, returns whether or not the format is supported.
 pub unsafe fn is_format_supported(
     client: &Audio::IAudioClient,
-    waveformatex_ptr: *const Audio::WAVEFORMATEX,
+    waveformatex_ptr: *const Audio::WAVEFORMATEX
 ) -> Result<bool, SupportedStreamConfigsError> {
     // Check if the given format is supported.
     let is_supported = |waveformatex_ptr, closest_waveformatex_ptr| {
         let result = client.IsFormatSupported(
             Audio::AUDCLNT_SHAREMODE_SHARED,
             waveformatex_ptr,
-            Some(closest_waveformatex_ptr),
+            Some(closest_waveformatex_ptr)
         );
         // `IsFormatSupported` can return `S_FALSE` (which means that a compatible format
         // has been found, but not an exact match) so we also treat this as unsupported.
@@ -195,15 +199,14 @@ pub unsafe fn is_format_supported(
 // Get a cpal Format from a WAVEFORMATEX.
 unsafe fn format_from_waveformatex_ptr(
     waveformatex_ptr: *const Audio::WAVEFORMATEX,
-    audio_client: &Audio::IAudioClient,
+    audio_client: &Audio::IAudioClient
 ) -> Option<SupportedStreamConfig> {
     fn cmp_guid(a: &GUID, b: &GUID) -> bool {
         (a.data1, a.data2, a.data3, a.data4) == (b.data1, b.data2, b.data3, b.data4)
     }
-    let sample_format = match (
-        (*waveformatex_ptr).wBitsPerSample,
-        (*waveformatex_ptr).wFormatTag as u32,
-    ) {
+    let sample_format = match
+        ((*waveformatex_ptr).wBitsPerSample, (*waveformatex_ptr).wFormatTag as u32)
+    {
         (8, Audio::WAVE_FORMAT_PCM) => SampleFormat::U8,
         (16, Audio::WAVE_FORMAT_PCM) => SampleFormat::I16,
         (32, Multimedia::WAVE_FORMAT_IEEE_FLOAT) => SampleFormat::F32,
@@ -217,7 +220,9 @@ unsafe fn format_from_waveformatex_ptr(
                     16 => SampleFormat::I16,
                     32 => SampleFormat::I32,
                     64 => SampleFormat::I64,
-                    _ => return None,
+                    _ => {
+                        return None;
+                    }
                 }
             } else if n_bits == 32 && cmp_guid(&sub, &Multimedia::KSDATAFORMAT_SUBTYPE_IEEE_FLOAT) {
                 SampleFormat::F32
@@ -226,7 +231,9 @@ unsafe fn format_from_waveformatex_ptr(
             }
         }
         // Unknown data format returned by GetMixFormat.
-        _ => return None,
+        _ => {
+            return None;
+        }
     };
 
     let sample_rate = SampleRate((*waveformatex_ptr).nSamplesPerSec);
@@ -250,7 +257,7 @@ unsafe fn format_from_waveformatex_ptr(
                 waveformatex_ptr,
                 true,
                 &mut min_buffer_duration,
-                &mut max_buffer_duration,
+                &mut max_buffer_duration
             )
         })
         .is_ok();
@@ -282,8 +289,7 @@ impl Device {
     pub fn name(&self) -> Result<String, DeviceNameError> {
         unsafe {
             // Open the device's property store.
-            let property_store = self
-                .device
+            let property_store = self.device
                 .OpenPropertyStore(STGM_READ)
                 .expect("could not open property store");
 
@@ -341,7 +347,7 @@ impl Device {
 
     /// Ensures that `future_audio_client` contains a `Some` and returns a locked mutex to it.
     fn ensure_future_audio_client(
-        &self,
+        &self
     ) -> Result<MutexGuard<Option<IAudioClientWrapper>>, windows::core::Error> {
         let mut lock = self.future_audio_client.lock().unwrap();
         if lock.is_some() {
@@ -384,7 +390,7 @@ impl Device {
         let lock = match self.ensure_future_audio_client() {
             Ok(lock) => lock,
             Err(ref e) if e.code() == Audio::AUDCLNT_E_DEVICE_INVALIDATED => {
-                return Err(SupportedStreamConfigsError::DeviceNotAvailable)
+                return Err(SupportedStreamConfigsError::DeviceNotAvailable);
             }
             Err(e) => {
                 let description = format!("{}", e);
@@ -413,8 +419,7 @@ impl Device {
                 Some(fmt) => fmt,
                 None => {
                     let description =
-                        "could not create a `cpal::SupportedStreamConfig` from a `WAVEFORMATEX`"
-                            .to_string();
+                        "could not create a `cpal::SupportedStreamConfig` from a `WAVEFORMATEX`".to_string();
                     let err = BackendSpecificError { description };
                     return Err(err.into());
                 }
@@ -423,7 +428,7 @@ impl Device {
             let mut sample_rates: Vec<SampleRate> = COMMON_SAMPLE_RATES.to_vec();
 
             if !sample_rates.contains(&format.sample_rate) {
-                sample_rates.push(format.sample_rate)
+                sample_rates.push(format.sample_rate);
             }
 
             let mut supported_formats = Vec::new();
@@ -436,25 +441,29 @@ impl Device {
                     SampleFormat::I64,
                     SampleFormat::F32,
                 ] {
-                    if let Some(waveformat) = config_to_waveformatextensible(
-                        &StreamConfig {
-                            channels: format.channels,
-                            sample_rate,
-                            buffer_size: BufferSize::Default,
-                        },
-                        sample_format,
-                    ) {
-                        if is_format_supported(
-                            client,
-                            &waveformat.Format as *const Audio::WAVEFORMATEX,
-                        )? {
+                    if
+                        let Some(waveformat) = config_to_waveformatextensible(
+                            &(StreamConfig {
+                                channels: format.channels,
+                                sample_rate,
+                                buffer_size: BufferSize::Default,
+                            }),
+                            sample_format
+                        )
+                    {
+                        if
+                            is_format_supported(
+                                client,
+                                &waveformat.Format as *const Audio::WAVEFORMATEX
+                            )?
+                        {
                             supported_formats.push(SupportedStreamConfigRange {
                                 channels: format.channels,
                                 min_sample_rate: sample_rate,
                                 max_sample_rate: sample_rate,
                                 buffer_size: format.buffer_size,
                                 sample_format,
-                            })
+                            });
                         }
                     }
                 }
@@ -464,22 +473,22 @@ impl Device {
     }
 
     pub fn supported_input_configs(
-        &self,
+        &self
     ) -> Result<SupportedInputConfigs, SupportedStreamConfigsError> {
         if self.data_flow() == Audio::eCapture {
             self.supported_formats()
-        // If it's an output device, assume no input formats.
+            // If it's an output device, assume no input formats.
         } else {
             Ok(vec![].into_iter())
         }
     }
 
     pub fn supported_output_configs(
-        &self,
+        &self
     ) -> Result<SupportedOutputConfigs, SupportedStreamConfigsError> {
         if self.data_flow() == Audio::eRender {
             self.supported_formats()
-        // If it's an input device, assume no output formats.
+            // If it's an input device, assume no output formats.
         } else {
             Ok(vec![].into_iter())
         }
@@ -496,7 +505,7 @@ impl Device {
         let lock = match self.ensure_future_audio_client() {
             Ok(lock) => lock,
             Err(ref e) if e.code() == Audio::AUDCLNT_E_DEVICE_INVALIDATED => {
-                return Err(DefaultStreamConfigError::DeviceNotAvailable)
+                return Err(DefaultStreamConfigError::DeviceNotAvailable);
             }
             Err(e) => {
                 let description = format!("{}", e);
@@ -512,8 +521,9 @@ impl Device {
                 .map(WaveFormatExPtr)
                 .map_err(windows_err_to_cpal_err::<DefaultStreamConfigError>)?;
 
-            format_from_waveformatex_ptr(format_ptr.0, client)
-                .ok_or(DefaultStreamConfigError::StreamTypeNotSupported)
+            format_from_waveformatex_ptr(format_ptr.0, client).ok_or(
+                DefaultStreamConfigError::StreamTypeNotSupported
+            )
         }
     }
 
@@ -542,7 +552,7 @@ impl Device {
     pub(crate) fn build_input_stream_raw_inner(
         &self,
         config: &StreamConfig,
-        sample_format: SampleFormat,
+        sample_format: SampleFormat
     ) -> Result<StreamInner, BuildStreamError> {
         unsafe {
             // Making sure that COM is initialized.
@@ -553,7 +563,7 @@ impl Device {
             let audio_client = match self.build_audioclient() {
                 Ok(client) => client,
                 Err(ref e) if e.code() == Audio::AUDCLNT_E_DEVICE_INVALIDATED => {
-                    return Err(BuildStreamError::DeviceNotAvailable)
+                    return Err(BuildStreamError::DeviceNotAvailable);
                 }
                 Err(e) => {
                     let description = format!("{}", e);
@@ -562,8 +572,10 @@ impl Device {
                 }
             };
 
-            let buffer_duration =
-                buffer_size_to_duration(&config.buffer_size, config.sample_rate.0);
+            let buffer_duration = buffer_size_to_duration(
+                &config.buffer_size,
+                config.sample_rate.0
+            );
 
             let mut stream_flags = Audio::AUDCLNT_STREAMFLAGS_EVENTCALLBACK;
 
@@ -573,14 +585,19 @@ impl Device {
 
             // Computing the format and initializing the device.
             let waveformatex = {
-                let format_attempt = config_to_waveformatextensible(config, sample_format)
-                    .ok_or(BuildStreamError::StreamConfigNotSupported)?;
+                let format_attempt = config_to_waveformatextensible(config, sample_format).ok_or(
+                    BuildStreamError::StreamConfigNotSupported
+                )?;
                 let share_mode = Audio::AUDCLNT_SHAREMODE_SHARED;
 
                 // Ensure the format is supported.
                 match super::device::is_format_supported(&audio_client, &format_attempt.Format) {
-                    Ok(false) => return Err(BuildStreamError::StreamConfigNotSupported),
-                    Err(_) => return Err(BuildStreamError::DeviceNotAvailable),
+                    Ok(false) => {
+                        return Err(BuildStreamError::StreamConfigNotSupported);
+                    }
+                    Err(_) => {
+                        return Err(BuildStreamError::DeviceNotAvailable);
+                    }
                     _ => (),
                 }
 
@@ -591,7 +608,7 @@ impl Device {
                     buffer_duration,
                     0,
                     &format_attempt.Format,
-                    None,
+                    None
                 );
                 match hresult {
                     Err(ref e) if e.code() == Audio::AUDCLNT_E_DEVICE_INVALIDATED => {
@@ -603,7 +620,7 @@ impl Device {
                         return Err(err.into());
                     }
                     Ok(()) => (),
-                };
+                }
 
                 format_attempt.Format
             };
@@ -615,13 +632,16 @@ impl Device {
 
             // Creating the event that will be signalled whenever we need to submit some samples.
             let event = {
-                let event =
-                    Threading::CreateEventA(None, false, false, windows::core::PCSTR(ptr::null()))
-                        .map_err(|e| {
-                            let description = format!("failed to create event: {}", e);
-                            let err = BackendSpecificError { description };
-                            BuildStreamError::from(err)
-                        })?;
+                let event = Threading::CreateEventA(
+                    None,
+                    false,
+                    false,
+                    windows::core::PCSTR(ptr::null())
+                ).map_err(|e| {
+                    let description = format!("failed to create event: {}", e);
+                    let err = BackendSpecificError { description };
+                    BuildStreamError::from(err)
+                })?;
 
                 if let Err(e) = audio_client.SetEventHandle(event) {
                     let description = format!("failed to call SetEventHandle: {}", e);
@@ -638,7 +658,7 @@ impl Device {
                 .map_err(|e| {
                     windows_err_to_cpal_err_message::<BuildStreamError>(
                         e,
-                        "failed to build capture client: ",
+                        "failed to build capture client: "
                     )
                 })?;
 
@@ -665,7 +685,7 @@ impl Device {
     pub(crate) fn build_output_stream_raw_inner(
         &self,
         config: &StreamConfig,
-        sample_format: SampleFormat,
+        sample_format: SampleFormat
     ) -> Result<StreamInner, BuildStreamError> {
         unsafe {
             // Making sure that COM is initialized.
@@ -677,19 +697,26 @@ impl Device {
                 .build_audioclient()
                 .map_err(windows_err_to_cpal_err::<BuildStreamError>)?;
 
-            let buffer_duration =
-                buffer_size_to_duration(&config.buffer_size, config.sample_rate.0);
+            let buffer_duration = buffer_size_to_duration(
+                &config.buffer_size,
+                config.sample_rate.0
+            );
 
             // Computing the format and initializing the device.
             let waveformatex = {
-                let format_attempt = config_to_waveformatextensible(config, sample_format)
-                    .ok_or(BuildStreamError::StreamConfigNotSupported)?;
+                let format_attempt = config_to_waveformatextensible(config, sample_format).ok_or(
+                    BuildStreamError::StreamConfigNotSupported
+                )?;
                 let share_mode = Audio::AUDCLNT_SHAREMODE_SHARED;
 
                 // Ensure the format is supported.
                 match super::device::is_format_supported(&audio_client, &format_attempt.Format) {
-                    Ok(false) => return Err(BuildStreamError::StreamConfigNotSupported),
-                    Err(_) => return Err(BuildStreamError::DeviceNotAvailable),
+                    Ok(false) => {
+                        return Err(BuildStreamError::StreamConfigNotSupported);
+                    }
+                    Err(_) => {
+                        return Err(BuildStreamError::DeviceNotAvailable);
+                    }
                     _ => (),
                 }
 
@@ -701,7 +728,7 @@ impl Device {
                         buffer_duration,
                         0,
                         &format_attempt.Format,
-                        None,
+                        None
                     )
                     .map_err(windows_err_to_cpal_err::<BuildStreamError>)?;
 
@@ -710,13 +737,16 @@ impl Device {
 
             // Creating the event that will be signalled whenever we need to submit some samples.
             let event = {
-                let event =
-                    Threading::CreateEventA(None, false, false, windows::core::PCSTR(ptr::null()))
-                        .map_err(|e| {
-                            let description = format!("failed to create event: {}", e);
-                            let err = BackendSpecificError { description };
-                            BuildStreamError::from(err)
-                        })?;
+                let event = Threading::CreateEventA(
+                    None,
+                    false,
+                    false,
+                    windows::core::PCSTR(ptr::null())
+                ).map_err(|e| {
+                    let description = format!("failed to create event: {}", e);
+                    let err = BackendSpecificError { description };
+                    BuildStreamError::from(err)
+                })?;
 
                 if let Err(e) = audio_client.SetEventHandle(event) {
                     let description = format!("failed to call SetEventHandle: {}", e);
@@ -728,12 +758,14 @@ impl Device {
             };
 
             // obtaining the size of the samples buffer in number of frames
-            let max_frames_in_buffer = audio_client.GetBufferSize().map_err(|e| {
-                windows_err_to_cpal_err_message::<BuildStreamError>(
-                    e,
-                    "failed to obtain buffer size: ",
-                )
-            })?;
+            let max_frames_in_buffer = audio_client
+                .GetBufferSize()
+                .map_err(|e| {
+                    windows_err_to_cpal_err_message::<BuildStreamError>(
+                        e,
+                        "failed to obtain buffer size: "
+                    )
+                })?;
 
             // Building a `IAudioRenderClient` that will be used to fill the samples buffer.
             let render_client = audio_client
@@ -741,7 +773,7 @@ impl Device {
                 .map_err(|e| {
                     windows_err_to_cpal_err_message::<BuildStreamError>(
                         e,
-                        "failed to build render client: ",
+                        "failed to build render client: "
                     )
                 })?;
 
@@ -781,7 +813,7 @@ impl PartialEq for Device {
             /// RAII for device IDs.
             impl Drop for IdRAII {
                 fn drop(&mut self) {
-                    unsafe { Com::CoTaskMemFree(Some(self.0 .0 as *mut _)) }
+                    unsafe { Com::CoTaskMemFree(Some(self.0.0 as *mut _)) }
                 }
             }
             // GetId only fails with E_OUTOFMEMORY and if it does, we're probably dead already.
@@ -793,8 +825,8 @@ impl PartialEq for Device {
             // 16-bit null-terminated comparison.
             let mut offset = 0;
             loop {
-                let w1: u16 = *(id1.0).0.offset(offset);
-                let w2: u16 = *(id2.0).0.offset(offset);
+                let w1: u16 = *id1.0.0.offset(offset);
+                let w2: u16 = *id2.0.0.offset(offset);
                 if w1 == 0 && w2 == 0 {
                     return true;
                 }
@@ -811,10 +843,7 @@ impl Eq for Device {}
 
 impl fmt::Debug for Device {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.debug_struct("Device")
-            .field("device", &self.device)
-            .field("name", &self.name())
-            .finish()
+        f.debug_struct("Device").field("device", &self.device).field("name", &self.name()).finish()
     }
 }
 
@@ -846,9 +875,8 @@ fn get_enumerator() -> &'static Enumerator {
             let enumerator = Com::CoCreateInstance::<_, Audio::IMMDeviceEnumerator>(
                 &Audio::MMDeviceEnumerator,
                 None,
-                Com::CLSCTX_ALL,
-            )
-            .unwrap();
+                Com::CLSCTX_ALL
+            ).unwrap();
 
             Enumerator(enumerator)
         }
@@ -873,8 +901,7 @@ impl Devices {
         unsafe {
             // can fail because of wrong parameters (should never happen) or out of memory
             let collection = get_enumerator()
-                .0
-                .EnumAudioEndpoints(Audio::eAll, Audio::DEVICE_STATE_ACTIVE)
+                .0.EnumAudioEndpoints(Audio::eAll, Audio::DEVICE_STATE_ACTIVE)
                 .map_err(BackendSpecificError::from)?;
 
             let count = collection.GetCount().map_err(BackendSpecificError::from)?;
@@ -916,10 +943,7 @@ impl Iterator for Devices {
 
 fn default_device(data_flow: Audio::EDataFlow) -> Option<Device> {
     unsafe {
-        let device = get_enumerator()
-            .0
-            .GetDefaultAudioEndpoint(data_flow, Audio::eConsole)
-            .ok()?;
+        let device = get_enumerator().0.GetDefaultAudioEndpoint(data_flow, Audio::eConsole).ok()?;
         // TODO: check specifically for `E_NOTFOUND`, and panic otherwise
         Some(Device::from_immdevice(device))
     }
@@ -935,7 +959,7 @@ pub fn default_output_device() -> Option<Device> {
 
 /// Get the audio clock used to produce `StreamInstant`s.
 unsafe fn get_audio_clock(
-    audio_client: &Audio::IAudioClient,
+    audio_client: &Audio::IAudioClient
 ) -> Result<Audio::IAudioClock, BuildStreamError> {
     audio_client
         .GetService::<Audio::IAudioClock>()
@@ -949,7 +973,7 @@ unsafe fn get_audio_clock(
 // Returns `None` if the WAVEFORMATEXTENSIBLE does not support the given format.
 fn config_to_waveformatextensible(
     config: &StreamConfig,
-    sample_format: SampleFormat,
+    sample_format: SampleFormat
 ) -> Option<Audio::WAVEFORMATEXTENSIBLE> {
     let format_tag = match sample_format {
         SampleFormat::U8 | SampleFormat::I16 => Audio::WAVE_FORMAT_PCM,
@@ -958,7 +982,9 @@ fn config_to_waveformatextensible(
             KernelStreaming::WAVE_FORMAT_EXTENSIBLE
         }
 
-        _ => return None,
+        _ => {
+            return None;
+        }
     };
     let channels = config.channels;
     let sample_rate = config.sample_rate.0;
@@ -994,7 +1020,9 @@ fn config_to_waveformatextensible(
         }
 
         SampleFormat::F32 => Multimedia::KSDATAFORMAT_SUBTYPE_IEEE_FLOAT,
-        _ => return None,
+        _ => {
+            return None;
+        }
     };
 
     let waveformatextensible = Audio::WAVEFORMATEXTENSIBLE {
@@ -1011,11 +1039,12 @@ fn config_to_waveformatextensible(
 
 fn buffer_size_to_duration(buffer_size: &BufferSize, sample_rate: u32) -> i64 {
     match buffer_size {
-        BufferSize::Fixed(frames) => *frames as i64 * (1_000_000_000 / 100) / sample_rate as i64,
+        BufferSize::Fixed(frames) =>
+            ((*frames as i64) * (1_000_000_000 / 100)) / (sample_rate as i64),
         BufferSize::Default => 0,
     }
 }
 
 fn buffer_duration_to_frames(buffer_duration: i64, sample_rate: u32) -> FrameCount {
-    (buffer_duration * sample_rate as i64 * 100 / 1_000_000_000) as FrameCount
+    ((buffer_duration * (sample_rate as i64) * 100) / 1_000_000_000) as FrameCount
 }

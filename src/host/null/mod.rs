@@ -1,10 +1,21 @@
 use std::time::Duration;
 
-use crate::traits::{DeviceTrait, HostTrait, StreamTrait};
+use crate::traits::{ DeviceTrait, HostTrait, StreamTrait };
 use crate::{
-    BuildStreamError, Data, DefaultStreamConfigError, DeviceNameError, DevicesError,
-    InputCallbackInfo, OutputCallbackInfo, PauseStreamError, PlayStreamError, SampleFormat,
-    StreamConfig, StreamError, SupportedStreamConfig, SupportedStreamConfigRange,
+    BuildStreamError,
+    Data,
+    DefaultStreamConfigError,
+    DeviceNameError,
+    DevicesError,
+    InputCallbackInfo,
+    OutputCallbackInfo,
+    PauseStreamError,
+    PlayStreamError,
+    SampleFormat,
+    StreamConfig,
+    StreamError,
+    SupportedStreamConfig,
+    SupportedStreamConfigRange,
     SupportedStreamConfigsError,
 };
 
@@ -47,14 +58,14 @@ impl DeviceTrait for Device {
 
     #[inline]
     fn supported_input_configs(
-        &self,
+        &self
     ) -> Result<SupportedInputConfigs, SupportedStreamConfigsError> {
         unimplemented!()
     }
 
     #[inline]
     fn supported_output_configs(
-        &self,
+        &self
     ) -> Result<SupportedOutputConfigs, SupportedStreamConfigsError> {
         unimplemented!()
     }
@@ -75,11 +86,12 @@ impl DeviceTrait for Device {
         _sample_format: SampleFormat,
         _data_callback: D,
         _error_callback: E,
-        _timeout: Option<Duration>,
-    ) -> Result<Self::Stream, BuildStreamError>
-    where
-        D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        _timeout: Option<Duration>
+    )
+        -> Result<Self::Stream, BuildStreamError>
+        where
+            D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
         unimplemented!()
     }
@@ -91,11 +103,12 @@ impl DeviceTrait for Device {
         _sample_format: SampleFormat,
         _data_callback: D,
         _error_callback: E,
-        _timeout: Option<Duration>,
-    ) -> Result<Self::Stream, BuildStreamError>
-    where
-        D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        _timeout: Option<Duration>
+    )
+        -> Result<Self::Stream, BuildStreamError>
+        where
+            D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
         unimplemented!()
     }

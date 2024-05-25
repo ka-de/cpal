@@ -33,7 +33,7 @@
 //! ```
 //!
 //! Before we can create a stream, we must decide what the configuration of the audio stream is
-//! going to be.    
+//! going to be.
 //! You can query all the supported configurations with the
 //! [`supported_input_configs()`] and [`supported_output_configs()`] methods.
 //! These produce a list of [`SupportedStreamConfigRange`] structs which can later be turned into
@@ -166,12 +166,21 @@ extern crate web_sys;
 
 pub use error::*;
 pub use platform::{
-    available_hosts, default_host, host_from_id, Device, Devices, Host, HostId, Stream,
-    SupportedInputConfigs, SupportedOutputConfigs, ALL_HOSTS,
+    available_hosts,
+    default_host,
+    host_from_id,
+    Device,
+    Devices,
+    Host,
+    HostId,
+    Stream,
+    SupportedInputConfigs,
+    SupportedOutputConfigs,
+    ALL_HOSTS,
 };
-pub use samples_formats::{FromSample, Sample, SampleFormat, SizedSample, I24, I48, U24, U48};
+pub use samples_formats::{ FromSample, Sample, SampleFormat, SizedSample, I24, I48, U24, U48 };
 use std::convert::TryInto;
-use std::ops::{Div, Mul};
+use std::ops::{ Div, Mul };
 use std::time::Duration;
 #[cfg(target_os = "emscripten")]
 use wasm_bindgen::prelude::*;
@@ -196,20 +205,14 @@ pub type ChannelCount = u16;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct SampleRate(pub u32);
 
-impl<T> Mul<T> for SampleRate
-where
-    u32: Mul<T, Output = u32>,
-{
+impl<T> Mul<T> for SampleRate where u32: Mul<T, Output = u32> {
     type Output = Self;
     fn mul(self, rhs: T) -> Self {
         SampleRate(self.0 * rhs)
     }
 }
 
-impl<T> Div<T> for SampleRate
-where
-    u32: Div<T, Output = u32>,
-{
+impl<T> Div<T> for SampleRate where u32: Div<T, Output = u32> {
     type Output = Self;
     fn div(self, rhs: T) -> Self {
         SampleRate(self.0 / rhs)
@@ -225,7 +228,7 @@ pub type FrameCount = u32;
 /// behavior of the given host. Note, the default buffer size may be surprisingly
 /// large, leading to latency issues. If low latency is desired, [`Fixed(FrameCount)`]
 /// should be used in accordance with the [`SupportedBufferSize`] range produced by
-/// the [`SupportedStreamConfig`] API.  
+/// the [`SupportedStreamConfig`] API.
 ///
 /// [`Default`]: BufferSize::Default
 /// [`Fixed(FrameCount)`]: BufferSize::Fixed
@@ -245,11 +248,12 @@ impl wasm_bindgen::describe::WasmDescribe for BufferSize {
 impl wasm_bindgen::convert::IntoWasmAbi for BufferSize {
     type Abi = Option<u32>;
     fn into_abi(self) -> Self::Abi {
-        match self {
-            Self::Default => None,
-            Self::Fixed(fc) => Some(fc),
-        }
-        .into_abi()
+        (
+            match self {
+                Self::Default => None,
+                Self::Fixed(fc) => Some(fc),
+            }
+        ).into_abi()
     }
 }
 
@@ -378,7 +382,7 @@ impl SupportedStreamConfig {
         channels: ChannelCount,
         sample_rate: SampleRate,
         buffer_size: SupportedBufferSize,
-        sample_format: SampleFormat,
+        sample_format: SampleFormat
     ) -> Self {
         Self {
             channels,
@@ -421,10 +425,7 @@ impl StreamInstant {
         if self < earlier {
             None
         } else {
-            (self.as_nanos() - earlier.as_nanos())
-                .try_into()
-                .ok()
-                .map(Duration::from_nanos)
+            (self.as_nanos() - earlier.as_nanos()).try_into().ok().map(Duration::from_nanos)
         }
     }
 
@@ -450,7 +451,7 @@ impl StreamInstant {
     }
 
     fn as_nanos(&self) -> i128 {
-        (self.secs as i128 * 1_000_000_000) + self.nanos as i128
+        (self.secs as i128) * 1_000_000_000 + (self.nanos as i128)
     }
 
     #[allow(dead_code)]
@@ -463,11 +464,11 @@ impl StreamInstant {
     #[allow(dead_code)]
     fn from_nanos_i128(nanos: i128) -> Option<Self> {
         let secs = nanos / 1_000_000_000;
-        if secs > i64::MAX as i128 || secs < i64::MIN as i128 {
+        if secs > (i64::MAX as i128) || secs < (i64::MIN as i128) {
             None
         } else {
             let subsec_nanos = nanos - secs * 1_000_000_000;
-            debug_assert!(subsec_nanos < u32::MAX as i128);
+            debug_assert!(subsec_nanos < (u32::MAX as i128));
             Some(Self::new(secs as i64, subsec_nanos as u32))
         }
     }
@@ -475,7 +476,7 @@ impl StreamInstant {
     #[allow(dead_code)]
     fn from_secs_f64(secs: f64) -> crate::StreamInstant {
         let s = secs.floor() as i64;
-        let ns = ((secs - s as f64) * 1_000_000_000.0) as u32;
+        let ns = ((secs - (s as f64)) * 1_000_000_000.0) as u32;
         Self::new(s, ns)
     }
 
@@ -512,7 +513,7 @@ impl Data {
     pub(crate) unsafe fn from_parts(
         data: *mut (),
         len: usize,
-        sample_format: SampleFormat,
+        sample_format: SampleFormat
     ) -> Self {
         Data {
             data,
@@ -541,7 +542,9 @@ impl Data {
         let len = self.len * self.sample_format.sample_size();
         // The safety of this block relies on correct construction of the `Data` instance.
         // See the unsafe `from_parts` constructor for these requirements.
-        unsafe { std::slice::from_raw_parts(self.data as *const u8, len) }
+        unsafe {
+            std::slice::from_raw_parts(self.data as *const u8, len)
+        }
     }
 
     /// The raw slice of memory representing the underlying audio data as a slice of bytes.
@@ -551,20 +554,21 @@ impl Data {
         let len = self.len * self.sample_format.sample_size();
         // The safety of this block relies on correct construction of the `Data` instance. See
         // the unsafe `from_parts` constructor for these requirements.
-        unsafe { std::slice::from_raw_parts_mut(self.data as *mut u8, len) }
+        unsafe {
+            std::slice::from_raw_parts_mut(self.data as *mut u8, len)
+        }
     }
 
     /// Access the data as a slice of sample type `T`.
     ///
     /// Returns `None` if the sample type does not match the expected sample format.
-    pub fn as_slice<T>(&self) -> Option<&[T]>
-    where
-        T: SizedSample,
-    {
+    pub fn as_slice<T>(&self) -> Option<&[T]> where T: SizedSample {
         if T::FORMAT == self.sample_format {
             // The safety of this block relies on correct construction of the `Data` instance. See
             // the unsafe `from_parts` constructor for these requirements.
-            unsafe { Some(std::slice::from_raw_parts(self.data as *const T, self.len)) }
+            unsafe {
+                Some(std::slice::from_raw_parts(self.data as *const T, self.len))
+            }
         } else {
             None
         }
@@ -573,18 +577,12 @@ impl Data {
     /// Access the data as a slice of sample type `T`.
     ///
     /// Returns `None` if the sample type does not match the expected sample format.
-    pub fn as_slice_mut<T>(&mut self) -> Option<&mut [T]>
-    where
-        T: SizedSample,
-    {
+    pub fn as_slice_mut<T>(&mut self) -> Option<&mut [T]> where T: SizedSample {
         if T::FORMAT == self.sample_format {
             // The safety of this block relies on correct construction of the `Data` instance. See
             // the unsafe `from_parts` constructor for these requirements.
             unsafe {
-                Some(std::slice::from_raw_parts_mut(
-                    self.data as *mut T,
-                    self.len,
-                ))
+                Some(std::slice::from_raw_parts_mut(self.data as *mut T, self.len))
             }
         } else {
             None
@@ -598,7 +596,7 @@ impl SupportedStreamConfigRange {
         min_sample_rate: SampleRate,
         max_sample_rate: SampleRate,
         buffer_size: SupportedBufferSize,
-        sample_format: SampleFormat,
+        sample_format: SampleFormat
     ) -> Self {
         Self {
             channels,
@@ -637,8 +635,7 @@ impl SupportedStreamConfigRange {
     /// this [`SupportedStreamConfigRange`] instance. For a non-panicking
     /// variant, use [`try_with_sample_rate`](#method.try_with_sample_rate).
     pub fn with_sample_rate(self, sample_rate: SampleRate) -> SupportedStreamConfig {
-        self.try_with_sample_rate(sample_rate)
-            .expect("sample rate out of range")
+        self.try_with_sample_rate(sample_rate).expect("sample rate out of range")
     }
 
     /// Retrieve a [`SupportedStreamConfig`] with the given sample rate and buffer size.
@@ -695,7 +692,7 @@ impl SupportedStreamConfigRange {
     /// - Max sample rate
     pub fn cmp_default_heuristics(&self, other: &Self) -> std::cmp::Ordering {
         use std::cmp::Ordering::Equal;
-        use SampleFormat::{F32, I16, U16};
+        use SampleFormat::{ F32, I16, U16 };
 
         let cmp_stereo = (self.channels == 2).cmp(&(other.channels == 2));
         if cmp_stereo != Equal {
@@ -842,30 +839,12 @@ fn test_stream_instant() {
     let b = StreamInstant::new(-2, 0);
     let min = StreamInstant::new(i64::MIN, 0);
     let max = StreamInstant::new(i64::MAX, 0);
-    assert_eq!(
-        a.sub(Duration::from_secs(1)),
-        Some(StreamInstant::new(1, 0))
-    );
-    assert_eq!(
-        a.sub(Duration::from_secs(2)),
-        Some(StreamInstant::new(0, 0))
-    );
-    assert_eq!(
-        a.sub(Duration::from_secs(3)),
-        Some(StreamInstant::new(-1, 0))
-    );
+    assert_eq!(a.sub(Duration::from_secs(1)), Some(StreamInstant::new(1, 0)));
+    assert_eq!(a.sub(Duration::from_secs(2)), Some(StreamInstant::new(0, 0)));
+    assert_eq!(a.sub(Duration::from_secs(3)), Some(StreamInstant::new(-1, 0)));
     assert_eq!(min.sub(Duration::from_secs(1)), None);
-    assert_eq!(
-        b.add(Duration::from_secs(1)),
-        Some(StreamInstant::new(-1, 0))
-    );
-    assert_eq!(
-        b.add(Duration::from_secs(2)),
-        Some(StreamInstant::new(0, 0))
-    );
-    assert_eq!(
-        b.add(Duration::from_secs(3)),
-        Some(StreamInstant::new(1, 0))
-    );
+    assert_eq!(b.add(Duration::from_secs(1)), Some(StreamInstant::new(-1, 0)));
+    assert_eq!(b.add(Duration::from_secs(2)), Some(StreamInstant::new(0, 0)));
+    assert_eq!(b.add(Duration::from_secs(3)), Some(StreamInstant::new(1, 0)));
     assert_eq!(max.add(Duration::from_secs(1)), None);
 }

@@ -38,12 +38,8 @@ fn main() {
     for name in asio.driver_names() {
         println!("Driver: {:?}", name);
         let driver = asio.load_driver(&name).expect("failed to load driver");
-        let channels = driver
-            .channels()
-            .expect("failed to retrieve channel counts");
-        let sample_rate = driver
-            .sample_rate()
-            .expect("failed to retrieve sample rate");
+        let channels = driver.channels().expect("failed to retrieve channel counts");
+        let sample_rate = driver.sample_rate().expect("failed to retrieve sample rate");
         let in_fmt = Format {
             channels: channels.ins as _,
             sample_rate: SampleRate(sample_rate as _),

@@ -1,5 +1,9 @@
 pub use self::device::{
-    default_input_device, default_output_device, Device, Devices, SupportedInputConfigs,
+    default_input_device,
+    default_output_device,
+    Device,
+    Devices,
+    SupportedInputConfigs,
     SupportedOutputConfigs,
 };
 pub use self::stream::Stream;
@@ -91,7 +95,7 @@ fn windows_err_to_cpal_err<E: ErrDeviceNotAvailable>(e: windows::core::Error) ->
 
 fn windows_err_to_cpal_err_message<E: ErrDeviceNotAvailable>(
     e: windows::core::Error,
-    message: &str,
+    message: &str
 ) -> E {
     match e.code() {
         Audio::AUDCLNT_E_DEVICE_INVALIDATED => E::device_not_available(),

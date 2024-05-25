@@ -13,24 +13,44 @@ extern crate coreaudio;
 use std::cell::RefCell;
 
 use self::coreaudio::audio_unit::render_callback::data;
-use self::coreaudio::audio_unit::{render_callback, AudioUnit, Element, Scope};
+use self::coreaudio::audio_unit::{ render_callback, AudioUnit, Element, Scope };
 use self::coreaudio::sys::{
-    kAudioOutputUnitProperty_EnableIO, kAudioUnitProperty_StreamFormat, AudioBuffer,
+    kAudioOutputUnitProperty_EnableIO,
+    kAudioUnitProperty_StreamFormat,
+    AudioBuffer,
     AudioStreamBasicDescription,
 };
 
-use super::{asbd_from_config, frames_to_duration, host_time_to_stream_instant};
-use crate::traits::{DeviceTrait, HostTrait, StreamTrait};
+use super::{ asbd_from_config, frames_to_duration, host_time_to_stream_instant };
+use crate::traits::{ DeviceTrait, HostTrait, StreamTrait };
 
 use crate::{
-    BackendSpecificError, BufferSize, BuildStreamError, Data, DefaultStreamConfigError,
-    DeviceNameError, DevicesError, InputCallbackInfo, OutputCallbackInfo, PauseStreamError,
-    PlayStreamError, SampleFormat, SampleRate, StreamConfig, StreamError, SupportedBufferSize,
-    SupportedStreamConfig, SupportedStreamConfigRange, SupportedStreamConfigsError,
+    BackendSpecificError,
+    BufferSize,
+    BuildStreamError,
+    Data,
+    DefaultStreamConfigError,
+    DeviceNameError,
+    DevicesError,
+    InputCallbackInfo,
+    OutputCallbackInfo,
+    PauseStreamError,
+    PlayStreamError,
+    SampleFormat,
+    SampleRate,
+    StreamConfig,
+    StreamError,
+    SupportedBufferSize,
+    SupportedStreamConfig,
+    SupportedStreamConfigRange,
+    SupportedStreamConfigsError,
 };
 
 use self::enumerate::{
-    default_input_device, default_output_device, Devices, SupportedInputConfigs,
+    default_input_device,
+    default_output_device,
+    Devices,
+    SupportedInputConfigs,
     SupportedOutputConfigs,
 };
 use std::slice;
@@ -81,26 +101,27 @@ impl Device {
 
     #[inline]
     fn supported_input_configs(
-        &self,
+        &self
     ) -> Result<SupportedInputConfigs, SupportedStreamConfigsError> {
         // TODO: query AVAudioSession for parameters, some values like sample rate and buffer size
         // probably need to actually be set to see if it works, but channels can be enumerated.
 
         let asbd: AudioStreamBasicDescription = default_input_asbd()?;
         let stream_config = stream_config_from_asbd(asbd);
-        Ok(vec![SupportedStreamConfigRange {
-            channels: stream_config.channels,
-            min_sample_rate: stream_config.sample_rate,
-            max_sample_rate: stream_config.sample_rate,
-            buffer_size: stream_config.buffer_size.clone(),
-            sample_format: SUPPORTED_SAMPLE_FORMAT,
-        }]
-        .into_iter())
+        Ok(
+            vec![SupportedStreamConfigRange {
+                channels: stream_config.channels,
+                min_sample_rate: stream_config.sample_rate,
+                max_sample_rate: stream_config.sample_rate,
+                buffer_size: stream_config.buffer_size.clone(),
+                sample_format: SUPPORTED_SAMPLE_FORMAT,
+            }].into_iter()
+        )
     }
 
     #[inline]
     fn supported_output_configs(
-        &self,
+        &self
     ) -> Result<SupportedOutputConfigs, SupportedStreamConfigsError> {
         // TODO: query AVAudioSession for parameters, some values like sample rate and buffer size
         // probably need to actually be set to see if it works, but channels can be enumerated.
@@ -147,14 +168,14 @@ impl DeviceTrait for Device {
 
     #[inline]
     fn supported_input_configs(
-        &self,
+        &self
     ) -> Result<Self::SupportedInputConfigs, SupportedStreamConfigsError> {
         Device::supported_input_configs(self)
     }
 
     #[inline]
     fn supported_output_configs(
-        &self,
+        &self
     ) -> Result<Self::SupportedOutputConfigs, SupportedStreamConfigsError> {
         Device::supported_output_configs(self)
     }
@@ -175,11 +196,12 @@ impl DeviceTrait for Device {
         sample_format: SampleFormat,
         mut data_callback: D,
         mut error_callback: E,
-        _timeout: Option<Duration>,
-    ) -> Result<Self::Stream, BuildStreamError>
-    where
-        D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        _timeout: Option<Duration>
+    )
+        -> Result<Self::Stream, BuildStreamError>
+        where
+            D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
         // The scope and element for working with a device's input stream.
         let scope = Scope::Output;
@@ -220,7 +242,7 @@ impl DeviceTrait for Device {
             } = buffers[0];
 
             let data = data as *mut ();
-            let len = (data_byte_size as usize / bytes_per_channel) as usize;
+            let len = ((data_byte_size as usize) / bytes_per_channel) as usize;
             let data = Data::from_parts(data, len, sample_format);
 
             // TODO: Need a better way to get delay, for now we assume a double-buffer offset.
@@ -231,7 +253,7 @@ impl DeviceTrait for Device {
                 }
                 Ok(cb) => cb,
             };
-            let buffer_frames = len / channels as usize;
+            let buffer_frames = len / (channels as usize);
             let delay = frames_to_duration(buffer_frames, sample_rate);
             let capture = callback
                 .sub(delay)
@@ -245,10 +267,12 @@ impl DeviceTrait for Device {
 
         audio_unit.start()?;
 
-        Ok(Stream::new(StreamInner {
-            playing: true,
-            audio_unit,
-        }))
+        Ok(
+            Stream::new(StreamInner {
+                playing: true,
+                audio_unit,
+            })
+        )
     }
 
     /// Create an output stream.
@@ -258,18 +282,19 @@ impl DeviceTrait for Device {
         sample_format: SampleFormat,
         mut data_callback: D,
         mut error_callback: E,
-        _timeout: Option<Duration>,
-    ) -> Result<Self::Stream, BuildStreamError>
-    where
-        D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        _timeout: Option<Duration>
+    )
+        -> Result<Self::Stream, BuildStreamError>
+        where
+            D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
         match config.buffer_size {
             BufferSize::Fixed(_) => {
                 return Err(BuildStreamError::StreamConfigNotSupported);
             }
             BufferSize::Default => (),
-        };
+        }
 
         let mut audio_unit = create_audio_unit()?;
 
@@ -297,7 +322,7 @@ impl DeviceTrait for Device {
             } = (*args.data.data).mBuffers[0];
 
             let data = data as *mut ();
-            let len = (data_byte_size as usize / bytes_per_channel) as usize;
+            let len = ((data_byte_size as usize) / bytes_per_channel) as usize;
             let mut data = Data::from_parts(data, len, sample_format);
 
             let callback = match host_time_to_stream_instant(args.time_stamp.mHostTime) {
@@ -308,7 +333,7 @@ impl DeviceTrait for Device {
                 Ok(cb) => cb,
             };
             // TODO: Need a better way to get delay, for now we assume a double-buffer offset.
-            let buffer_frames = len / channels as usize;
+            let buffer_frames = len / (channels as usize);
             let delay = frames_to_duration(buffer_frames, sample_rate);
             let playback = callback
                 .add(delay)
@@ -322,10 +347,12 @@ impl DeviceTrait for Device {
 
         audio_unit.start()?;
 
-        Ok(Stream::new(StreamInner {
-            playing: true,
-            audio_unit,
-        }))
+        Ok(
+            Stream::new(StreamInner {
+                playing: true,
+                audio_unit,
+            })
+        )
     }
 }
 
@@ -388,7 +415,7 @@ fn configure_for_recording(audio_unit: &mut AudioUnit) -> Result<(), coreaudio::
         kAudioOutputUnitProperty_EnableIO,
         Scope::Input,
         Element::Input,
-        Some(&enable_input),
+        Some(&enable_input)
     )?;
 
     // Disable output
@@ -397,7 +424,7 @@ fn configure_for_recording(audio_unit: &mut AudioUnit) -> Result<(), coreaudio::
         kAudioOutputUnitProperty_EnableIO,
         Scope::Output,
         Element::Output,
-        Some(&disable_output),
+        Some(&disable_output)
     )?;
 
     Ok(())
@@ -406,8 +433,11 @@ fn configure_for_recording(audio_unit: &mut AudioUnit) -> Result<(), coreaudio::
 fn default_output_asbd() -> Result<AudioStreamBasicDescription, coreaudio::Error> {
     let audio_unit = create_audio_unit()?;
     let id = kAudioUnitProperty_StreamFormat;
-    let asbd: AudioStreamBasicDescription =
-        audio_unit.get_property(id, Scope::Output, Element::Output)?;
+    let asbd: AudioStreamBasicDescription = audio_unit.get_property(
+        id,
+        Scope::Output,
+        Element::Output
+    )?;
     Ok(asbd)
 }
 
@@ -418,8 +448,11 @@ fn default_input_asbd() -> Result<AudioStreamBasicDescription, coreaudio::Error>
     audio_unit.initialize()?;
 
     let id = kAudioUnitProperty_StreamFormat;
-    let asbd: AudioStreamBasicDescription =
-        audio_unit.get_property(id, Scope::Input, Element::Input)?;
+    let asbd: AudioStreamBasicDescription = audio_unit.get_property(
+        id,
+        Scope::Input,
+        Element::Input
+    )?;
     Ok(asbd)
 }
 

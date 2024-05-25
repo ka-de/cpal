@@ -1,11 +1,17 @@
 use crate::traits::StreamTrait;
 use crate::ChannelCount;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{ AtomicBool, Ordering };
+use std::sync::{ Arc, Mutex };
 
 use crate::{
-    BackendSpecificError, Data, InputCallbackInfo, OutputCallbackInfo, PauseStreamError,
-    PlayStreamError, SampleRate, StreamError,
+    BackendSpecificError,
+    Data,
+    InputCallbackInfo,
+    OutputCallbackInfo,
+    PauseStreamError,
+    PlayStreamError,
+    SampleRate,
+    StreamError,
 };
 
 use super::JACK_SAMPLE_FORMAT;
@@ -27,11 +33,12 @@ impl Stream {
         client: jack::Client,
         channels: ChannelCount,
         data_callback: D,
-        mut error_callback: E,
-    ) -> Stream
-    where
-        D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        mut error_callback: E
+    )
+        -> Stream
+        where
+            D: FnMut(&Data, &InputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
         let mut ports = vec![];
         let mut port_names: Vec<String> = vec![];
@@ -50,10 +57,9 @@ impl Stream {
                 Err(e) => {
                     // If port creation failed, send the error back via the error_callback
                     error_callback(
-                        BackendSpecificError {
+                        (BackendSpecificError {
                             description: e.to_string(),
-                        }
-                        .into(),
+                        }).into()
                     );
                 }
             }
@@ -71,7 +77,7 @@ impl Stream {
             Some(Box::new(data_callback)),
             None,
             playing.clone(),
-            Arc::clone(&error_callback_ptr),
+            Arc::clone(&error_callback_ptr)
         );
 
         let notification_handler = JackNotificationHandler::new(error_callback_ptr);
@@ -92,11 +98,12 @@ impl Stream {
         client: jack::Client,
         channels: ChannelCount,
         data_callback: D,
-        mut error_callback: E,
-    ) -> Stream
-    where
-        D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
-        E: FnMut(StreamError) + Send + 'static,
+        mut error_callback: E
+    )
+        -> Stream
+        where
+            D: FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static,
+            E: FnMut(StreamError) + Send + 'static
     {
         let mut ports = vec![];
         let mut port_names: Vec<String> = vec![];
@@ -115,10 +122,9 @@ impl Stream {
                 Err(e) => {
                     // If port creation failed, send the error back via the error_callback
                     error_callback(
-                        BackendSpecificError {
+                        (BackendSpecificError {
                             description: e.to_string(),
-                        }
-                        .into(),
+                        }).into()
                     );
                 }
             }
@@ -136,7 +142,7 @@ impl Stream {
             None,
             Some(Box::new(data_callback)),
             playing.clone(),
-            Arc::clone(&error_callback_ptr),
+            Arc::clone(&error_callback_ptr)
         );
 
         let notification_handler = JackNotificationHandler::new(error_callback_ptr);
@@ -157,21 +163,19 @@ impl Stream {
     /// This has to be done after the client is activated, doing it just after creating the ports doesn't work.
     pub fn connect_to_system_outputs(&mut self) {
         // Get the system ports
-        let system_ports = self.async_client.as_client().ports(
-            Some("system:playback_.*"),
-            None,
-            jack::PortFlags::empty(),
-        );
+        let system_ports = self.async_client
+            .as_client()
+            .ports(Some("system:playback_.*"), None, jack::PortFlags::empty());
 
         // Connect outputs from this client to the system playback inputs
         for i in 0..self.output_port_names.len() {
             if i >= system_ports.len() {
                 break;
             }
-            match self
-                .async_client
-                .as_client()
-                .connect_ports_by_name(&self.output_port_names[i], &system_ports[i])
+            match
+                self.async_client
+                    .as_client()
+                    .connect_ports_by_name(&self.output_port_names[i], &system_ports[i])
             {
                 Ok(_) => (),
                 Err(e) => println!("Unable to connect to port with error {}", e),
@@ -183,21 +187,19 @@ impl Stream {
     /// This has to be done after the client is activated, doing it just after creating the ports doesn't work.
     pub fn connect_to_system_inputs(&mut self) {
         // Get the system ports
-        let system_ports = self.async_client.as_client().ports(
-            Some("system:capture_.*"),
-            None,
-            jack::PortFlags::empty(),
-        );
+        let system_ports = self.async_client
+            .as_client()
+            .ports(Some("system:capture_.*"), None, jack::PortFlags::empty());
 
         // Connect outputs from this client to the system playback inputs
         for i in 0..self.input_port_names.len() {
             if i >= system_ports.len() {
                 break;
             }
-            match self
-                .async_client
-                .as_client()
-                .connect_ports_by_name(&system_ports[i], &self.input_port_names[i])
+            match
+                self.async_client
+                    .as_client()
+                    .connect_ports_by_name(&system_ports[i], &self.input_port_names[i])
             {
                 Ok(_) => (),
                 Err(e) => println!("Unable to connect to port with error {}", e),
@@ -245,10 +247,10 @@ impl LocalProcessHandler {
         buffer_size: usize,
         input_data_callback: Option<Box<dyn FnMut(&Data, &InputCallbackInfo) + Send + 'static>>,
         output_data_callback: Option<
-            Box<dyn FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static>,
+            Box<dyn FnMut(&mut Data, &OutputCallbackInfo) + Send + 'static>
         >,
         playing: Arc<AtomicBool>,
-        error_callback_ptr: ErrorCallbackPtr,
+        error_callback_ptr: ErrorCallbackPtr
     ) -> Self {
         // These may be reallocated in the `buffer_size` callback.
         let temp_input_buffer = vec![0.0; in_ports.len() * buffer_size];
@@ -302,10 +304,12 @@ impl jack::ProcessHandler for LocalProcessHandler {
         };
         let start_cycle_instant = micros_to_stream_instant(current_start_usecs);
         let start_callback_instant = start_cycle_instant
-            .add(frames_to_duration(
-                process_scope.frames_since_cycle_start() as usize,
-                self.sample_rate,
-            ))
+            .add(
+                frames_to_duration(
+                    process_scope.frames_since_cycle_start() as usize,
+                    self.sample_rate
+                )
+            )
             .expect("`playback` occurs beyond representation supported by `StreamInstant`");
 
         if let Some(input_callback) = &mut self.input_data_callback {
@@ -324,12 +328,14 @@ impl jack::ProcessHandler for LocalProcessHandler {
             // Create a slice of exactly current_frame_count frames
             let data = temp_buffer_to_data(
                 &mut self.temp_input_buffer,
-                current_frame_count * num_in_channels,
+                current_frame_count * num_in_channels
             );
             // Create timestamp
             let frames_since_cycle_start = process_scope.frames_since_cycle_start() as usize;
-            let duration_since_cycle_start =
-                frames_to_duration(frames_since_cycle_start, self.sample_rate);
+            let duration_since_cycle_start = frames_to_duration(
+                frames_since_cycle_start,
+                self.sample_rate
+            );
             let callback = start_callback_instant
                 .add(duration_since_cycle_start)
                 .expect("`playback` occurs beyond representation supported by `StreamInstant`");
@@ -345,12 +351,14 @@ impl jack::ProcessHandler for LocalProcessHandler {
             // Create a slice of exactly current_frame_count frames
             let mut data = temp_buffer_to_data(
                 &mut self.temp_output_buffer,
-                current_frame_count * num_out_channels,
+                current_frame_count * num_out_channels
             );
             // Create timestamp
             let frames_since_cycle_start = process_scope.frames_since_cycle_start() as usize;
-            let duration_since_cycle_start =
-                frames_to_duration(frames_since_cycle_start, self.sample_rate);
+            let duration_since_cycle_start = frames_to_duration(
+                frames_since_cycle_start,
+                self.sample_rate
+            );
             let callback = start_callback_instant
                 .add(duration_since_cycle_start)
                 .expect("`playback` occurs beyond representation supported by `StreamInstant`");
@@ -388,7 +396,7 @@ impl jack::ProcessHandler for LocalProcessHandler {
             let description = format!("buffer size changed to: {}", new_size);
             if let Ok(mut mutex_guard) = self.error_callback_ptr.lock() {
                 let err = &mut *mutex_guard;
-                err(BackendSpecificError { description }.into());
+                err((BackendSpecificError { description }).into());
             }
         }
 
@@ -405,9 +413,9 @@ fn micros_to_stream_instant(micros: u64) -> crate::StreamInstant {
 
 // Convert the given duration in frames at the given sample rate to a `std::time::Duration`.
 fn frames_to_duration(frames: usize, rate: crate::SampleRate) -> std::time::Duration {
-    let secsf = frames as f64 / rate.0 as f64;
+    let secsf = (frames as f64) / (rate.0 as f64);
     let secs = secsf as u64;
-    let nanos = ((secsf - secs as f64) * 1_000_000_000.0) as u32;
+    let nanos = ((secsf - (secs as f64)) * 1_000_000_000.0) as u32;
     std::time::Duration::new(secs, nanos)
 }
 
@@ -430,7 +438,7 @@ impl JackNotificationHandler {
         // This thread isn't the audio thread, it's fine to block
         if let Ok(mut mutex_guard) = self.error_callback_ptr.lock() {
             let err = &mut *mutex_guard;
-            err(BackendSpecificError { description }.into());
+            err((BackendSpecificError { description }).into());
         }
     }
 }

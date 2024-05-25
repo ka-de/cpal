@@ -12,9 +12,9 @@ use crate::SupportedBufferSize;
 use crate::SupportedStreamConfig;
 use crate::SupportedStreamConfigRange;
 use crate::SupportedStreamConfigsError;
-use std::hash::{Hash, Hasher};
+use std::hash::{ Hash, Hasher };
 use std::sync::atomic::AtomicI32;
-use std::sync::{Arc, Mutex};
+use std::sync::{ Arc, Mutex };
 
 /// A ASIO Device
 #[derive(Clone)]
@@ -58,24 +58,21 @@ impl Device {
     /// TODO currently only supports the default.
     /// Need to find all possible configs.
     pub fn supported_input_configs(
-        &self,
+        &self
     ) -> Result<SupportedInputConfigs, SupportedStreamConfigsError> {
         // Retrieve the default config for the total supported channels and supported sample
         // format.
         let f = match self.default_input_config() {
-            Err(_) => return Err(SupportedStreamConfigsError::DeviceNotAvailable),
+            Err(_) => {
+                return Err(SupportedStreamConfigsError::DeviceNotAvailable);
+            }
             Ok(f) => f,
         };
 
         // Collect a config for every combination of supported sample rate and number of channels.
         let mut supported_configs = vec![];
         for &rate in crate::COMMON_SAMPLE_RATES {
-            if !self
-                .driver
-                .can_sample_rate(rate.0.into())
-                .ok()
-                .unwrap_or(false)
-            {
+            if !self.driver.can_sample_rate(rate.0.into()).ok().unwrap_or(false) {
                 continue;
             }
             for channels in 1..f.channels + 1 {
@@ -85,7 +82,7 @@ impl Device {
                     max_sample_rate: rate,
                     buffer_size: f.buffer_size,
                     sample_format: f.sample_format,
-                })
+                });
             }
         }
         Ok(supported_configs.into_iter())
@@ -95,24 +92,21 @@ impl Device {
     /// TODO currently only supports the default.
     /// Need to find all possible configs.
     pub fn supported_output_configs(
-        &self,
+        &self
     ) -> Result<SupportedOutputConfigs, SupportedStreamConfigsError> {
         // Retrieve the default config for the total supported channels and supported sample
         // format.
         let f = match self.default_output_config() {
-            Err(_) => return Err(SupportedStreamConfigsError::DeviceNotAvailable),
+            Err(_) => {
+                return Err(SupportedStreamConfigsError::DeviceNotAvailable);
+            }
             Ok(f) => f,
         };
 
         // Collect a config for every combination of supported sample rate and number of channels.
         let mut supported_configs = vec![];
         for &rate in crate::COMMON_SAMPLE_RATES {
-            if !self
-                .driver
-                .can_sample_rate(rate.0.into())
-                .ok()
-                .unwrap_or(false)
-            {
+            if !self.driver.can_sample_rate(rate.0.into()).ok().unwrap_or(false) {
                 continue;
             }
             for channels in 1..f.channels + 1 {
@@ -122,7 +116,7 @@ impl Device {
                     max_sample_rate: rate,
                     buffer_size: f.buffer_size,
                     sample_format: f.sample_format,
-                })
+                });
             }
         }
         Ok(supported_configs.into_iter())
@@ -139,8 +133,9 @@ impl Device {
         };
         // Map th ASIO sample type to a CPAL sample type
         let data_type = self.driver.input_data_type().map_err(default_config_err)?;
-        let sample_format = convert_data_type(&data_type)
-            .ok_or(DefaultStreamConfigError::StreamTypeNotSupported)?;
+        let sample_format = convert_data_type(&data_type).ok_or(
+            DefaultStreamConfigError::StreamTypeNotSupported
+        )?;
         Ok(SupportedStreamConfig {
             channels,
             sample_rate,
@@ -159,8 +154,9 @@ impl Device {
             max: max as u32,
         };
         let data_type = self.driver.output_data_type().map_err(default_config_err)?;
-        let sample_format = convert_data_type(&data_type)
-            .ok_or(DefaultStreamConfigError::StreamTypeNotSupported)?;
+        let sample_format = convert_data_type(&data_type).ok_or(
+            DefaultStreamConfigError::StreamTypeNotSupported
+        )?;
         Ok(SupportedStreamConfig {
             channels,
             sample_rate,
@@ -184,22 +180,29 @@ impl Iterator for Devices {
     fn next(&mut self) -> Option<Device> {
         loop {
             match self.drivers.next() {
-                Some(name) => match self.asio.load_driver(&name) {
-                    Ok(driver) => {
-                        let driver = Arc::new(driver);
-                        let asio_streams = Arc::new(Mutex::new(sys::AsioStreams {
-                            input: None,
-                            output: None,
-                        }));
-                        return Some(Device {
-                            driver,
-                            asio_streams,
-                            current_buffer_index: Arc::new(AtomicI32::new(-1)),
-                        });
+                Some(name) =>
+                    match self.asio.load_driver(&name) {
+                        Ok(driver) => {
+                            let driver = Arc::new(driver);
+                            let asio_streams = Arc::new(
+                                Mutex::new(sys::AsioStreams {
+                                    input: None,
+                                    output: None,
+                                })
+                            );
+                            return Some(Device {
+                                driver,
+                                asio_streams,
+                                current_buffer_index: Arc::new(AtomicI32::new(-1)),
+                            });
+                        }
+                        Err(_) => {
+                            continue;
+                        }
                     }
-                    Err(_) => continue,
-                },
-                None => return None,
+                None => {
+                    return None;
+                }
             }
         }
     }
@@ -213,7 +216,9 @@ pub(crate) fn convert_data_type(ty: &sys::AsioSampleType) -> Option<SampleFormat
         sys::AsioSampleType::ASIOSTFloat32LSB => SampleFormat::F32,
         sys::AsioSampleType::ASIOSTInt32MSB => SampleFormat::I32,
         sys::AsioSampleType::ASIOSTInt32LSB => SampleFormat::I32,
-        _ => return None,
+        _ => {
+            return None;
+        }
     };
     Some(fmt)
 }
@@ -226,7 +231,7 @@ fn default_config_err(e: sys::AsioError) -> DefaultStreamConfigError {
         sys::AsioError::NoRate => DefaultStreamConfigError::StreamTypeNotSupported,
         err => {
             let description = format!("{}", err);
-            BackendSpecificError { description }.into()
+            (BackendSpecificError { description }).into()
         }
     }
 }
